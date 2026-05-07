@@ -5,11 +5,21 @@ declarative video rendering with ai generation. jsx for videos.
 ## quick start
 
 ```bash
-bun install @vargai/react
+bun install vargai ai
 ```
 
+Set direct provider keys for the models you use:
+
+```bash
+FAL_API_KEY=fal_xxx
+ELEVENLABS_API_KEY=xxx
+OPENAI_API_KEY=sk_xxx
+```
+
+React rendering uses direct providers through `vargai/ai`; there is no hosted gateway or account login flow.
+
 ```tsx
-import { render, Render, Clip, Image, Title } from "@vargai/react";
+import { render, Render, Clip, Image, Title } from "vargai/react";
 
 await render(
   <Render width={1280} height={720}>
@@ -75,7 +85,7 @@ clips are sequential. layers within a clip are stacked.
 ## rendering images
 
 ```tsx
-import { Image } from "@vargai/react";
+import { Image } from "vargai/react";
 
 // basic
 <Image prompt="ralph wiggum eating glue, simpsons style" />
@@ -109,7 +119,7 @@ import { Image } from "@vargai/react";
 ### text-to-video generation
 
 ```tsx
-import { Video } from "@vargai/react";
+import { Video } from "vargai/react";
 
 // generate video from prompt
 <Video prompt="ocean waves crashing on beach, cinematic" model={fal.videoModel("wan-2.5")} />
@@ -124,7 +134,7 @@ import { Video } from "@vargai/react";
 ### image-to-video animation
 
 ```tsx
-import { Animate } from "@vargai/react";
+import { Animate } from "vargai/react";
 
 // animate an image
 <Animate 
@@ -144,7 +154,7 @@ import { Animate } from "@vargai/react";
 ## rendering speech
 
 ```tsx
-import { Speech } from "@vargai/react";
+import { Speech } from "vargai/react";
 
 <Clip>
   <Image prompt="ralph wiggum at podium, simpsons style" />
@@ -161,8 +171,8 @@ voices: `rachel`, `adam`, `bella`, `sam`, `josh`
 compose Image, Animate, and Speech to create talking characters:
 
 ```tsx
-import { Clip, Image, Animate, Speech } from "@vargai/react";
-import { fal, elevenlabs } from "@vargai/sdk";
+import { Clip, Image, Animate, Speech } from "vargai/react";
+import { fal, elevenlabs } from "vargai/ai";
 
 // define a reusable TalkingHead component
 const TalkingHead = ({ character, voice, children }: {
@@ -260,7 +270,7 @@ layer children stack on top of each other.
 ## text overlays
 
 ```tsx
-import { Title, Subtitle } from "@vargai/react";
+import { Title, Subtitle } from "vargai/react";
 
 <Clip duration={5}>
   <Image prompt="ralph wiggum staring blankly" />
@@ -303,7 +313,7 @@ text appears and disappears within the clip:
 word-by-word animated captions synced to speech:
 
 ```tsx
-import { Captions } from "@vargai/react";
+import { Captions } from "vargai/react";
 
 <Clip>
   <Video src="./cartman-rant.mp4" />
@@ -356,7 +366,7 @@ or feed it a speech element directly:
 ## split screen
 
 ```tsx
-import { Split } from "@vargai/react";
+import { Split } from "vargai/react";
 
 <Clip duration={5}>
   <Split direction="horizontal">
@@ -378,7 +388,7 @@ import { Split } from "@vargai/react";
 animated wipe reveal between two images:
 
 ```tsx
-import { Slider } from "@vargai/react";
+import { Slider } from "vargai/react";
 
 <Clip duration={5}>
   <Slider direction="horizontal">
@@ -396,7 +406,7 @@ the slider animates from left to right, revealing the second image.
 tinder-style card swipes:
 
 ```tsx
-import { Swipe } from "@vargai/react";
+import { Swipe } from "vargai/react";
 
 <Clip duration={6}>
   <Swipe direction="right" interval={1.5}>
@@ -413,7 +423,7 @@ import { Swipe } from "@vargai/react";
 end card with call-to-action button:
 
 ```tsx
-import { Packshot } from "@vargai/react";
+import { Packshot } from "vargai/react";
 
 <Clip duration={4}>
   <Packshot
@@ -530,7 +540,7 @@ same `luigi` reference = same cache key = same generated image.
 define reusable elements for consistent generation:
 
 ```tsx
-import { Element, scene } from "@vargai/react";
+import { Element, scene } from "vargai/react";
 
 // define a character element
 const tiger = Element({
@@ -623,7 +633,7 @@ standard jsx conditionals:
 ## render options
 
 ```tsx
-import { render } from "@vargai/react";
+import { render } from "vargai/react";
 
 // save to file
 await render(<Render>...</Render>, { 
@@ -653,8 +663,8 @@ for await (const event of stream) {
 ## full example: ralph explains crypto
 
 ```tsx
-import { render, Render, Clip, Image, Animate, Speech, Title } from "@vargai/react";
-import { fal, elevenlabs } from "@vargai/sdk";
+import { render, Render, Clip, Image, Animate, Speech, Title } from "vargai/react";
+import { fal, elevenlabs } from "vargai/ai";
 
 // TalkingHead is just a composition of primitives
 const TalkingHead = ({ character, voice, children }: {
@@ -707,7 +717,7 @@ await render(
 ## full example: wheelchair racing promo
 
 ```tsx
-import { render, Render, Clip, Image, Animate, Title, Subtitle, Music } from "@vargai/react";
+import { render, Render, Clip, Image, Animate, Title, Subtitle, Music } from "vargai/react";
 
 const luigi = <Image prompt="luigi in racing wheelchair, determined, mario kart style" />;
 
@@ -741,7 +751,7 @@ await render(
 ## full example: fat tiger's fitness journey
 
 ```tsx
-import { render, Render, Clip, Image, Animate, Split, Title } from "@vargai/react";
+import { render, Render, Clip, Image, Animate, Split, Title } from "vargai/react";
 
 const tiger = "fat tiger, orange stripes, cute, pixar style";
 
@@ -769,8 +779,8 @@ await render(
 specify which ai model to use:
 
 ```tsx
-import { Image, Animate, Speech, TalkingHead } from "@vargai/react";
-import { fal, openai, replicate, elevenlabs, higgsfield } from "@vargai/sdk";
+import { Image, Animate, Speech, TalkingHead } from "vargai/react";
+import { fal, openai, replicate, elevenlabs, higgsfield } from "vargai/ai";
 
 // image models
 <Image prompt="sunset" model={fal.imageModel("flux-schnell")} />
