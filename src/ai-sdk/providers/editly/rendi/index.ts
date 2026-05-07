@@ -385,7 +385,13 @@ export class RendiBackend implements FFmpegBackend {
       if (typeof input !== "string" && "options" in input && input.options) {
         inputArgs.push(...input.options);
       }
-      inputArgs.push("-i", inputEntries[i]!.fileName);
+      const inputEntry = inputEntries[i];
+      if (!inputEntry) {
+        throw new Error(
+          `Missing Rendi compressed-folder input entry at index ${i}`,
+        );
+      }
+      inputArgs.push("-i", inputEntry.fileName);
     }
 
     const filterArgs: string[] = [];

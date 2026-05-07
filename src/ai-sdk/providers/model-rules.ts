@@ -10,7 +10,7 @@
  *   const fixed = normalizeProviderInput("kling-v3", { duration: 2.34 });
  *   // → { duration: "3" }  (rounded to 2, clamped to min 3, stringified)
  *
- * NOTE: This file is kept in sync with gateway/packages/schemas/src/model-rules.ts.
+ * NOTE: Keep these schemas aligned with direct provider input requirements.
  *       When adding new model rules, update both files.
  */
 

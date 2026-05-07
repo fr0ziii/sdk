@@ -70,8 +70,8 @@ describe("convertToSRT", () => {
     const srt = convertToSRT(words);
     const entries = parseSrt(srt);
     expect(entries.length).toBe(5);
-    expect(entries[0]!.text).toBe("Varg");
-    expect(entries[4]!.text).toBe("insane");
+    expect(entries[0]?.text).toBe("Varg");
+    expect(entries[4]?.text).toBe("insane");
   });
 });
 
@@ -91,9 +91,9 @@ is
 `;
     const entries = parseSrt(srt);
     expect(entries.length).toBe(3);
-    expect(entries[0]!.text).toBe("Varg");
-    expect(entries[0]!.start).toBeCloseTo(0.5);
-    expect(entries[0]!.end).toBeCloseTo(0.8);
-    expect(entries[2]!.text).toBe("is");
+    expect(entries[0]?.text).toBe("Varg");
+    expect(entries[0]?.start).toBeCloseTo(0.5);
+    expect(entries[0]?.end).toBeCloseTo(0.8);
+    expect(entries[2]?.text).toBe("is");
   });
 });

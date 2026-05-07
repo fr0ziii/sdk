@@ -12,15 +12,12 @@ import { defineCommand, runMain } from "citty";
 import { registry } from "../core/registry";
 import { allDefinitions } from "../definitions";
 import {
-  balanceCmd,
   findCmd,
   frameCmd,
   helloCmd,
   helpCmd,
   initCmd,
   listCmd,
-  loginCmd,
-  logoutCmd,
   previewCmd,
   renderCmd,
   runCmd,
@@ -37,7 +34,6 @@ import {
   showWhichHelp,
   storyboardCmd,
   studioCmd,
-  topupCmd,
   whichCmd,
 } from "./commands";
 
@@ -120,10 +116,6 @@ const main = defineCommand({
     description: "ai video generation sdk",
   },
   subCommands: {
-    login: loginCmd,
-    logout: logoutCmd,
-    balance: balanceCmd,
-    topup: topupCmd,
     hello: helloCmd,
     init: initCmd,
     render: renderCmd,

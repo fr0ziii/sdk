@@ -406,49 +406,6 @@ export interface RenderResult {
 
 // ── FFmpeg processing element props ──────────────────────────────────
 
-/** Minimal gateway interface for FFmpeg utility methods. Implemented by VargProvider. */
-export interface FFmpegGateway {
-  slice(params: {
-    video_url: string;
-    codec?: "copy" | "reencode";
-    every?: number;
-    at?: number[];
-    count?: number;
-    ranges?: Array<{ start: number; end: number }>;
-  }): Promise<{
-    url: string;
-    segments: Array<{
-      url: string;
-      index: number;
-      filename: string;
-      first_frame?: string;
-      thumbnail?: string;
-    }>;
-    jobId: string;
-  }>;
-  probe(params: { url: string }): Promise<{
-    duration?: number;
-    width?: number;
-    height?: number;
-    codec?: string;
-    audio_codec?: string;
-    format?: string;
-    bitrate?: number;
-    fps?: number;
-    size_bytes?: number;
-  }>;
-  ffmpeg(params: {
-    command: string;
-    input_files?: Record<string, string>;
-    output_files?: Record<string, string> | string;
-  }): Promise<{
-    url: string;
-    mediaType: string;
-    jobId: string;
-    metadata?: Record<string, unknown>;
-  }>;
-}
-
 export interface SliceProps {
   /** Source video: URL string, File object, or ResolvedElement */
   src: string | File | VargElement;
@@ -462,8 +419,8 @@ export interface SliceProps {
   count?: number;
   /** Split at explicit time ranges */
   ranges?: Array<{ start: number; end: number }>;
-  /** Authenticated gateway provider (e.g., varg). Required for cloud rendering. */
-  gateway?: FFmpegGateway;
+  /** Optional FFmpeg backend. Defaults to the active render backend or local ffmpeg. */
+  backend?: FFmpegBackend;
 }
 
 export interface FFmpegProps {
@@ -473,15 +430,15 @@ export interface FFmpegProps {
   inputs?: Record<string, string | File | VargElement>;
   /** FFmpeg command flags (without -i input, which is added automatically for src) */
   command: string;
-  /** Authenticated gateway provider (e.g., varg). Required for cloud rendering. */
-  gateway?: FFmpegGateway;
+  /** Optional FFmpeg backend. Command strings currently run on local ffmpeg only. */
+  backend?: FFmpegBackend;
 }
 
 export interface ProbeProps {
   /** Source to probe: URL string, File object, or ResolvedElement */
   src: string | File | VargElement;
-  /** Authenticated gateway provider (e.g., varg). Required for cloud rendering. */
-  gateway?: FFmpegGateway;
+  /** Optional FFmpeg backend. Defaults to the active render backend or local ffmpeg. */
+  backend?: FFmpegBackend;
 }
 
 /**

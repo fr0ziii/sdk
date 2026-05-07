@@ -20,7 +20,12 @@ import { File } from "../ai-sdk/file";
 import { fileCache } from "../ai-sdk/file-cache";
 import { generateMusic as generateMusicRaw } from "../ai-sdk/generate-music";
 import { generateVideo as generateVideoRaw } from "../ai-sdk/generate-video";
-import type { FFmpegBackend } from "../ai-sdk/providers/editly/backends";
+import {
+  type FFmpegBackend,
+  type FFmpegOutput,
+  localBackend,
+} from "../ai-sdk/providers/editly/backends";
+import { atOrThrow } from "../core/utils/guards";
 import { mapWordsToSegments } from "../speech/map-segments";
 import { parseElevenLabsAlignment } from "../speech/parse-alignment";
 import type {
@@ -357,7 +362,7 @@ interface CachedSpeechResult {
 /** Reconstruct a Segment (ResolvedElement<"speech"> + timing props) from cached data. */
 function reconstructSegment(
   cached: CachedSegment,
-  storage?: import("../ai-sdk/storage/types").StorageProvider,
+  _storage?: import("../ai-sdk/storage/types").StorageProvider,
 ): Segment {
   const segmentFile = File.fromBuffer(
     cached.file.uint8Array,
@@ -452,9 +457,8 @@ export async function resolveSpeechElement(
       reconstructSegment(s, ctx?.storage),
     );
     if (segments && ctx?.storage) {
-      await Promise.all(
-        segments.map((seg) => seg.meta.file.upload(ctx.storage!)),
-      );
+      const storage = ctx.storage;
+      await Promise.all(segments.map((seg) => seg.meta.file.upload(storage)));
     }
 
     return new ResolvedElement(element, {
@@ -890,79 +894,131 @@ export async function resolveVideoElement(
 // FFmpeg processing resolvers (Slice, FFmpeg, Probe)
 // ---------------------------------------------------------------------------
 
-/** Resolve the source URL from a string, File, or ResolvedElement. */
-async function resolveSourceUrl(
+function activeBackend(backend?: FFmpegBackend): FFmpegBackend {
+  return backend ?? getResolveContext()?.backend ?? localBackend;
+}
+
+function tempMediaPath(prefix: string, ext: string): string {
+  const tmpDir = process.env.TMPDIR ?? "/tmp";
+  return `${tmpDir}/${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+}
+
+/** Resolve the source path/URL from a string, File, or ResolvedElement. */
+async function resolveSourcePath(
   src:
     | string
     | File
     | { meta?: { file?: File }; props?: Record<string, unknown> },
+  backend: FFmpegBackend,
 ): Promise<string> {
-  if (typeof src === "string") return src;
-  if (src instanceof File) return src.url ?? (await src.toTempFile());
-  if (src.meta?.file)
-    return src.meta.file.url ?? (await src.meta.file.toTempFile());
-  throw new Error("cannot resolve source URL from input");
+  if (typeof src === "string") return backend.resolvePath(src);
+  if (src instanceof File) return backend.resolvePath(src);
+  if (src.meta?.file) return backend.resolvePath(src.meta.file);
+  throw new Error("cannot resolve source path from input");
 }
 
-/**
- * Resolve a Slice element -- splits video into segments via gateway.
- * Requires `gateway` prop (e.g., varg) for authenticated API access.
- */
+function fileFromOutput(output: FFmpegOutput, mediaType: string): File {
+  return output.type === "url"
+    ? File.fromUrl(output.url, mediaType)
+    : File.fromPath(output.path, mediaType);
+}
+
+function outputLocation(output: FFmpegOutput): string {
+  return output.type === "url" ? output.url : output.path;
+}
+
+async function buildSliceRanges(
+  inputPath: string,
+  backend: FFmpegBackend,
+  props: import("./types").SliceProps,
+): Promise<Array<{ start: number; end: number }>> {
+  if (props.ranges?.length) return props.ranges;
+
+  const duration = (await backend.ffprobe(inputPath)).duration;
+  if (!duration || duration <= 0) {
+    throw new Error("Slice requires media with a probeable duration");
+  }
+
+  if (props.at?.length) {
+    const cuts = [...props.at]
+      .filter((cut) => cut > 0 && cut < duration)
+      .sort((a, b) => a - b);
+    const points = [0, ...cuts, duration];
+    return points.slice(0, -1).map((start, index) => ({
+      start,
+      end: atOrThrow(points, index + 1, `Missing Slice cut point ${index + 1}`),
+    }));
+  }
+
+  if (props.count && props.count > 0) {
+    const count = props.count;
+    const segmentDuration = duration / count;
+    return Array.from({ length: count }, (_, index) => ({
+      start: index * segmentDuration,
+      end: index === count - 1 ? duration : (index + 1) * segmentDuration,
+    }));
+  }
+
+  if (props.every && props.every > 0) {
+    const ranges: Array<{ start: number; end: number }> = [];
+    for (let start = 0; start < duration; start += props.every) {
+      ranges.push({ start, end: Math.min(start + props.every, duration) });
+    }
+    return ranges;
+  }
+
+  throw new Error("Slice requires one of every, at, count, or ranges");
+}
+
+/** Resolve a Slice element by splitting video through the configured FFmpeg backend. */
 export async function resolveSliceElement(
   element: VargElement<"slice">,
   props: import("./types").SliceProps,
 ): Promise<ResolvedElement<"slice">> {
-  if (!props.gateway) {
-    throw new Error(
-      "await Slice() requires 'gateway' prop (e.g., Slice({ gateway: varg, src: video, every: 5 }))",
-    );
-  }
-
-  const srcUrl = await resolveSourceUrl(props.src);
-
-  const result = await props.gateway.slice({
-    video_url: srcUrl,
-    codec: props.codec ?? "copy",
-    every: props.every,
-    at: props.at,
-    count: props.count,
-    ranges: props.ranges,
-  });
+  const backend = activeBackend(props.backend);
+  const inputPath = await resolveSourcePath(props.src, backend);
+  const ranges = await buildSliceRanges(inputPath, backend, props);
+  const codecArgs =
+    props.codec === "reencode"
+      ? ["-c:v", "libx264", "-c:a", "aac"]
+      : ["-c", "copy"];
 
   const segments: import("./types").SliceSegment[] = [];
-  let cursor = 0;
-  for (const seg of result.segments) {
-    const segFile = File.fromUrl(seg.url);
+  for (let index = 0; index < ranges.length; index++) {
+    const range = ranges[index]!;
+    const outputPath = tempMediaPath("slice", "mp4");
+    const result = await backend.run({
+      inputs: [{ path: inputPath, options: ["-ss", String(range.start)] }],
+      outputArgs: [
+        "-t",
+        String(Math.max(0, range.end - range.start)),
+        ...codecArgs,
+        "-movflags",
+        "+faststart",
+      ],
+      outputPath,
+    });
+
+    const location = outputLocation(result.output);
+    const segFile = fileFromOutput(result.output, "video/mp4");
     const segDuration = await probeDuration(segFile);
     const segElement = new ResolvedElement(
-      { type: "video" as const, props: { src: seg.url }, children: [] },
+      { type: "video" as const, props: { src: location }, children: [] },
       { file: segFile, duration: segDuration },
     );
-    const augmented: {
-      url: string;
-      index: number;
-      start: number;
-      end: number;
-      first_frame?: string;
-      thumbnail?: string;
-    } = {
-      url: seg.url,
-      index: seg.index,
-      start: cursor,
-      end: cursor + segDuration,
-    };
-    if (seg.first_frame) augmented.first_frame = seg.first_frame;
-    if (seg.thumbnail) augmented.thumbnail = seg.thumbnail;
+
     segments.push(
-      Object.assign(segElement, augmented) as import("./types").SliceSegment,
+      Object.assign(segElement, {
+        url: location,
+        index,
+        start: range.start,
+        end: range.end,
+      }) as import("./types").SliceSegment,
     );
-    cursor += segDuration;
   }
 
-  const firstFile = result.segments[0]
-    ? File.fromUrl(result.segments[0].url)
-    : File.fromBuffer(new Uint8Array(0), "video/mp4");
-
+  const firstFile =
+    segments[0]?.meta.file ?? File.fromBuffer(new Uint8Array(0), "video/mp4");
   return new ResolvedElement(element, {
     file: firstFile,
     duration: 0,
@@ -970,71 +1026,71 @@ export async function resolveSliceElement(
   });
 }
 
-/**
- * Resolve an FFmpeg element -- runs arbitrary FFmpeg command via gateway.
- * Requires `gateway` prop (e.g., varg) for authenticated API access.
- */
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+/** Resolve an FFmpeg element by running a local ffmpeg command. */
 export async function resolveFFmpegElement(
   element: VargElement<"ffmpeg">,
   props: import("./types").FFmpegProps,
 ): Promise<ResolvedElement<"ffmpeg">> {
-  if (!props.gateway) {
+  const backend = activeBackend(props.backend);
+  if (backend.name !== "local") {
     throw new Error(
-      "await FFmpeg() requires 'gateway' prop (e.g., FFmpeg({ gateway: varg, command: '...' }))",
+      "FFmpeg({ command }) currently supports the local backend only",
     );
   }
 
   const inputFiles: Record<string, string> = {};
-  if (props.src) {
-    inputFiles.in_1 = await resolveSourceUrl(props.src);
-  }
+  if (props.src) inputFiles.in_1 = await resolveSourcePath(props.src, backend);
   if (props.inputs) {
     for (const [key, val] of Object.entries(props.inputs)) {
-      inputFiles[key] = await resolveSourceUrl(val);
+      inputFiles[key] = await resolveSourcePath(val, backend);
     }
   }
 
+  const outputPath = tempMediaPath("ffmpeg", "mp4");
   let command = props.command;
   if (props.src && !command.includes("{{in_1}}")) {
-    command = `-i {{in_1}} ${command} {{out_1}}`;
+    command = `-i {{in_1}} ${command}`;
+  }
+  if (!command.includes("{{out_1}}")) {
+    command = `${command} {{out_1}}`;
   }
 
-  const outputFiles = command.includes("OUTPUT_FOLDER")
-    ? ("OUTPUT_FOLDER" as const)
-    : { out_1: "output.mp4" };
+  for (const [key, value] of Object.entries(inputFiles)) {
+    command = command.replaceAll(`{{${key}}}`, shellQuote(value));
+  }
+  command = command.replaceAll("{{out_1}}", shellQuote(outputPath));
 
-  const result = await props.gateway.ffmpeg({
-    command,
-    input_files: inputFiles,
-    output_files: outputFiles,
+  const proc = Bun.spawn(["sh", "-c", `ffmpeg -hide_banner -y ${command}`], {
+    stdout: "pipe",
+    stderr: "pipe",
   });
+  const exitCode = await proc.exited;
+  if (exitCode !== 0) {
+    const stderr = await new Response(proc.stderr).text();
+    throw new Error(`ffmpeg failed (exit ${exitCode}): ${stderr.trim()}`);
+  }
 
-  const file = result.url
-    ? File.fromUrl(result.url)
-    : File.fromBuffer(new Uint8Array(0), "video/mp4");
-  const duration = result.url ? await probeDuration(file) : 0;
-
+  const file = File.fromPath(outputPath, "video/mp4");
+  const duration = await probeDuration(file);
   return new ResolvedElement(element, { file, duration });
 }
 
-/**
- * Resolve a Probe element -- gets media metadata via gateway.
- * Requires `gateway` prop (e.g., varg) for authenticated API access.
- */
+/** Resolve a Probe element through the configured FFmpeg backend. */
 export async function resolveProbeElement(
   element: VargElement<"probe">,
   props: import("./types").ProbeProps,
 ): Promise<ResolvedElement<"probe">> {
-  if (!props.gateway) {
-    throw new Error(
-      "await Probe() requires 'gateway' prop (e.g., Probe({ gateway: varg, src: video }))",
-    );
-  }
-
-  const srcUrl = await resolveSourceUrl(props.src);
-  const probeData = await props.gateway.probe({ url: srcUrl });
-
-  const file = File.fromUrl(srcUrl);
+  const backend = activeBackend(props.backend);
+  const inputPath = await resolveSourcePath(props.src, backend);
+  const probeData = await backend.ffprobe(inputPath);
+  const file =
+    inputPath.startsWith("http://") || inputPath.startsWith("https://")
+      ? File.fromUrl(inputPath)
+      : File.fromPath(inputPath);
 
   const resolved = new ResolvedElement(element, {
     file,
@@ -1044,12 +1100,7 @@ export async function resolveProbeElement(
   return Object.assign(resolved, {
     width: probeData.width,
     height: probeData.height,
-    codec: probeData.codec,
-    audioCodec: probeData.audio_codec,
-    format: probeData.format,
-    bitrate: probeData.bitrate,
     fps: probeData.fps,
-    sizeBytes: probeData.size_bytes,
   });
 }
 

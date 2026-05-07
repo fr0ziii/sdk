@@ -5,11 +5,7 @@
 
 import { z } from "zod";
 import { urlSchema } from "../../core/schema/shared";
-import type {
-  ModelDefinition,
-  ProviderPricing,
-  ZodSchema,
-} from "../../core/schema/types";
+import type { ModelDefinition, ZodSchema } from "../../core/schema/types";
 
 const omnihumanResolutionSchema = z
   .enum(["720p", "1080p"])

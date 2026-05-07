@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { limitedRetryUpload, r2UploadLimiter, retryR2Upload } from "./retry";
 
 // Use minimal delays for tests
@@ -262,7 +262,7 @@ describe("retryR2Upload", () => {
     });
 
     test("returns complex objects", async () => {
-      const obj = { url: "https://s3.varg.ai/test.mp4", key: "test.mp4" };
+      const obj = { url: "https://cdn.example.com/test.mp4", key: "test.mp4" };
       const result = await retryR2Upload(async () => obj, fastOpts);
       expect(result).toEqual(obj);
     });

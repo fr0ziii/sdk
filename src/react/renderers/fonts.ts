@@ -175,16 +175,22 @@ export function detectScriptsInText(text: string): Set<Script> {
 // Font registry
 // ---------------------------------------------------------------------------
 
-const S3_BASE = "https://s3.varg.ai/fonts";
+const FONT_ASSET_BASE_URL = process.env.FONT_ASSET_BASE_URL;
+
+function fontAssetUrl(fileName: string): string {
+  return FONT_ASSET_BASE_URL
+    ? `${FONT_ASSET_BASE_URL.replace(/\/$/, "")}/${fileName}`
+    : "";
+}
 
 export interface FontEntry {
   /** Short ID used in CaptionsProps.font (e.g. "montserrat") */
   id: string;
   /** Internal font family name as stored in the TTF/OTF name table (used in ASS {\fn} tags) */
   fontName: string;
-  /** Filename on S3 */
+  /** Asset filename */
   fileName: string;
-  /** Full S3 URL */
+  /** Public URL. Empty when FONT_ASSET_BASE_URL is not configured. */
   url: string;
   /** Which Unicode scripts this font covers */
   scripts: Script[];
@@ -196,63 +202,63 @@ export const PRIMARY_FONTS: Record<string, FontEntry> = {
     id: "montserrat",
     fontName: "Montserrat",
     fileName: "Montserrat-Bold.ttf",
-    url: `${S3_BASE}/Montserrat-Bold.ttf`,
+    url: fontAssetUrl("Montserrat-Bold.ttf"),
     scripts: ["latin", "cyrillic"],
   },
   roboto: {
     id: "roboto",
     fontName: "Roboto",
     fileName: "Roboto-Bold.ttf",
-    url: `${S3_BASE}/Roboto-Bold.ttf`,
+    url: fontAssetUrl("Roboto-Bold.ttf"),
     scripts: ["latin", "cyrillic", "greek"],
   },
   poppins: {
     id: "poppins",
     fontName: "Poppins",
     fileName: "Poppins-Bold.ttf",
-    url: `${S3_BASE}/Poppins-Bold.ttf`,
+    url: fontAssetUrl("Poppins-Bold.ttf"),
     scripts: ["latin", "devanagari"],
   },
   inter: {
     id: "inter",
     fontName: "Inter",
     fileName: "Inter-Bold.ttf",
-    url: `${S3_BASE}/Inter-Bold.ttf`,
+    url: fontAssetUrl("Inter-Bold.ttf"),
     scripts: ["latin", "cyrillic", "greek"],
   },
   "bebas-neue": {
     id: "bebas-neue",
     fontName: "Bebas Neue",
     fileName: "BebasNeue-Regular.ttf",
-    url: `${S3_BASE}/BebasNeue-Regular.ttf`,
+    url: fontAssetUrl("BebasNeue-Regular.ttf"),
     scripts: ["latin"],
   },
   "rock-salt": {
     id: "rock-salt",
     fontName: "Rock Salt",
     fileName: "RockSalt-Regular.ttf",
-    url: `${S3_BASE}/RockSalt-Regular.ttf`,
+    url: fontAssetUrl("RockSalt-Regular.ttf"),
     scripts: ["latin"],
   },
   oswald: {
     id: "oswald",
     fontName: "Oswald",
     fileName: "Oswald-Bold.ttf",
-    url: `${S3_BASE}/Oswald-Bold.ttf`,
+    url: fontAssetUrl("Oswald-Bold.ttf"),
     scripts: ["latin", "cyrillic"],
   },
   "space-grotesk": {
     id: "space-grotesk",
     fontName: "Space Grotesk",
     fileName: "SpaceGrotesk-Bold.ttf",
-    url: `${S3_BASE}/SpaceGrotesk-Bold.ttf`,
+    url: fontAssetUrl("SpaceGrotesk-Bold.ttf"),
     scripts: ["latin"],
   },
   "dm-sans": {
     id: "dm-sans",
     fontName: "DM Sans",
     fileName: "DMSans-Bold.ttf",
-    url: `${S3_BASE}/DMSans-Bold.ttf`,
+    url: fontAssetUrl("DMSans-Bold.ttf"),
     scripts: ["latin"],
   },
 };
@@ -263,63 +269,63 @@ export const FALLBACK_FONTS: FontEntry[] = [
     id: "noto-sans",
     fontName: "Noto Sans",
     fileName: "NotoSans-Bold.ttf",
-    url: `${S3_BASE}/NotoSans-Bold.ttf`,
+    url: fontAssetUrl("NotoSans-Bold.ttf"),
     scripts: ["latin", "cyrillic", "greek", "bengali", "tamil"],
   },
   {
     id: "noto-sans-cjk-jp",
     fontName: "Noto Sans CJK JP",
     fileName: "NotoSansCJKjp-Bold.otf",
-    url: `${S3_BASE}/NotoSansCJKjp-Bold.otf`,
+    url: fontAssetUrl("NotoSansCJKjp-Bold.otf"),
     scripts: ["cjk", "hiragana", "katakana"],
   },
   {
     id: "noto-sans-cjk-kr",
     fontName: "Noto Sans CJK KR",
     fileName: "NotoSansCJKkr-Bold.otf",
-    url: `${S3_BASE}/NotoSansCJKkr-Bold.otf`,
+    url: fontAssetUrl("NotoSansCJKkr-Bold.otf"),
     scripts: ["hangul"],
   },
   {
     id: "noto-sans-cjk-sc",
     fontName: "Noto Sans CJK SC",
     fileName: "NotoSansCJKsc-Bold.otf",
-    url: `${S3_BASE}/NotoSansCJKsc-Bold.otf`,
+    url: fontAssetUrl("NotoSansCJKsc-Bold.otf"),
     scripts: ["cjk"], // for standalone Chinese text when no Japanese context
   },
   {
     id: "noto-sans-arabic",
     fontName: "Noto Sans Arabic",
     fileName: "NotoSansArabic-Bold.ttf",
-    url: `${S3_BASE}/NotoSansArabic-Bold.ttf`,
+    url: fontAssetUrl("NotoSansArabic-Bold.ttf"),
     scripts: ["arabic"],
   },
   {
     id: "noto-sans-hebrew",
     fontName: "Noto Sans Hebrew",
     fileName: "NotoSansHebrew-Bold.ttf",
-    url: `${S3_BASE}/NotoSansHebrew-Bold.ttf`,
+    url: fontAssetUrl("NotoSansHebrew-Bold.ttf"),
     scripts: ["hebrew"],
   },
   {
     id: "noto-sans-devanagari",
     fontName: "Noto Sans Devanagari",
     fileName: "NotoSansDevanagari-Bold.ttf",
-    url: `${S3_BASE}/NotoSansDevanagari-Bold.ttf`,
+    url: fontAssetUrl("NotoSansDevanagari-Bold.ttf"),
     scripts: ["devanagari"],
   },
   {
     id: "noto-sans-thai",
     fontName: "Noto Sans Thai",
     fileName: "NotoSansThai-Bold.ttf",
-    url: `${S3_BASE}/NotoSansThai-Bold.ttf`,
+    url: fontAssetUrl("NotoSansThai-Bold.ttf"),
     scripts: ["thai"],
   },
   {
     id: "noto-emoji",
     fontName: "Noto Emoji",
     fileName: "NotoEmoji-Bold.ttf",
-    url: `${S3_BASE}/NotoEmoji-Bold.ttf`,
+    url: fontAssetUrl("NotoEmoji-Bold.ttf"),
     scripts: ["emoji"],
   },
 ];

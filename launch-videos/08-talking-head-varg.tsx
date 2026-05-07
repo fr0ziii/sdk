@@ -31,9 +31,10 @@ const CHARACTER_BASE_PROMPT = `A close, spontaneous iPhone selfie of a beautiful
 // === CLOTHING MODIFICATION PROMPT ===
 const CLOTHING_EDIT_PROMPT = `Same woman, same pose, same lighting. Her black tank t-shirt now has a stylish geometric pattern printed on it. Keep everything else identical - face, hair, expression, background.`;
 
-// === VARG PATTERN REFERENCE ===
-const VARG_PATTERN_URL =
-  "https://s3.varg.ai/uploads/images/varg-pattern_631fa5f2.png";
+// === CLOTHING PATTERN REFERENCE ===
+const CLOTHING_PATTERN_URL =
+  process.env.CLOTHING_PATTERN_URL ??
+  "https://picsum.photos/seed/geometric-pattern/512";
 
 // === MOTION PROMPT ===
 const MOTION_PROMPT =
@@ -53,7 +54,7 @@ const baseCharacter = Image({
 const brandedCharacter = Image({
   prompt: {
     text: CLOTHING_EDIT_PROMPT,
-    images: [baseCharacter, VARG_PATTERN_URL],
+    images: [baseCharacter, CLOTHING_PATTERN_URL],
   },
   model: fal.imageModel("nano-banana-pro/edit"),
   aspectRatio: "9:16",

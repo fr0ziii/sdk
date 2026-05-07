@@ -3,8 +3,15 @@ import { join } from "node:path";
 import { defineCommand } from "citty";
 
 const HELLO_TEMPLATE = `/** @jsxImportSource vargai */
-import { Render, Clip, Image, Video, assets } from "vargai/react";
+import { Render, Clip, Image, Video } from "vargai/react";
 import { fal } from "vargai/ai";
+
+const characterReference =
+  process.env.VARGAI_HELLO_CHARACTER_REF ??
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=768";
+const backgroundReference =
+  process.env.VARGAI_HELLO_BACKGROUND_REF ??
+  "https://images.unsplash.com/photo-1557683316-973673baf926?w=768";
 
 const girl = Image({
   prompt: {
@@ -18,7 +25,7 @@ Preserve the outfit neckline and visible clothing details from reference.
 Background: Deep black with two contrasting orange gradient accents matching Reference 2. Soft gradient bleed, no hard edges.
 
 Shot on 85mm f/1.4 lens, shallow depth of field. Clean studio lighting — soft key light on face, subtle rim light on hair and shoulders for separation. High-end fashion editorial aesthetic.\`,
-    images: [assets.characters.orangeGirl, assets.backgrounds.orangeGradient],
+    images: [characterReference, backgroundReference],
   },
   model: fal.imageModel("nano-banana-pro/edit"),
   aspectRatio: "9:16",

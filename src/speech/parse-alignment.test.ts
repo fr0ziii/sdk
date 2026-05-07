@@ -110,14 +110,14 @@ describe("parseElevenLabsAlignment", () => {
     });
 
     expect(result).toHaveLength(4);
-    expect(result[0]!.word).toBe("Welcome");
-    expect(result[1]!.word).toBe("to");
-    expect(result[2]!.word).toBe("the");
-    expect(result[3]!.word).toBe("show.");
+    expect(result[0]?.word).toBe("Welcome");
+    expect(result[1]?.word).toBe("to");
+    expect(result[2]?.word).toBe("the");
+    expect(result[3]?.word).toBe("show.");
     // First word starts at 0
-    expect(result[0]!.start).toBe(0);
+    expect(result[0]?.start).toBe(0);
     // Last word ends at the end
-    expect(result[3]!.end).toBe(n * 0.05);
+    expect(result[3]?.end).toBe(n * 0.05);
   });
 
   // -----------------------------------------------------------------------
@@ -148,9 +148,9 @@ describe("parseElevenLabsAlignment", () => {
     // Concatenated words should equal original text
     expect(result.map((w) => w.word).join("")).toBe(text);
     // First word starts at 0
-    expect(result[0]!.start).toBe(0);
+    expect(result[0]?.start).toBe(0);
     // Last word ends at the end
-    expect(result[result.length - 1]!.end).toBe(n * 0.1);
+    expect(result[result.length - 1]?.end).toBe(n * 0.1);
   });
 
   test("segments mixed Japanese-English text", () => {
@@ -251,8 +251,8 @@ describe("parseElevenLabsAlignment", () => {
     });
 
     expect(result).toHaveLength(2);
-    expect(result[0]!.word).toBe("مرحبا");
-    expect(result[1]!.word).toBe("بالعالم");
+    expect(result[0]?.word).toBe("مرحبا");
+    expect(result[1]?.word).toBe("بالعالم");
   });
 
   test("Korean text uses whitespace splitting (has spaces)", () => {
@@ -270,8 +270,8 @@ describe("parseElevenLabsAlignment", () => {
     });
 
     expect(result).toHaveLength(2);
-    expect(result[0]!.word).toBe("안녕하세요");
-    expect(result[1]!.word).toBe("세계");
+    expect(result[0]?.word).toBe("안녕하세요");
+    expect(result[1]?.word).toBe("세계");
   });
 
   // -----------------------------------------------------------------------

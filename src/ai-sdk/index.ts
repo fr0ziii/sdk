@@ -98,6 +98,11 @@ export {
   openai,
 } from "./providers/openai";
 export {
+  createPiAPI,
+  type PiAPIProvider,
+  piapi,
+} from "./providers/piapi";
+export {
   createReplicate,
   type ReplicateProvider,
   type ReplicateProviderSettings,
@@ -107,11 +112,6 @@ export {
   createTogetherProvider,
   together,
 } from "./providers/together";
-export {
-  createVarg,
-  type VargProvider,
-  varg,
-} from "./providers/varg";
 export {
   falStorage,
   limitedRetryUpload,

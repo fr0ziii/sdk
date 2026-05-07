@@ -6,7 +6,7 @@
 
 import { resolveLazy } from "../../renderers/resolve-lazy";
 import { ResolvedElement } from "../../resolved-element";
-import type { VargElement, VargNode } from "../../types";
+import type { VargElement } from "../../types";
 
 function inspect(label: string, element: VargElement, depth = 0) {
   const indent = "  ".repeat(depth);

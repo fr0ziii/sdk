@@ -1,3 +1,4 @@
+import { atOrThrow } from "../core/utils/guards";
 import type { ElevenLabsCharacterAlignment, WordTiming } from "./types";
 import { hasSpacelessChars, segmentWords } from "./word-segmenter";
 
@@ -79,8 +80,16 @@ function parseByWhitespace(
   let wordStart = 0;
 
   for (let i = 0; i < characters.length; i++) {
-    const char = characters[i]!;
-    const startTime = startTimes[i]!;
+    const char = atOrThrow(
+      characters,
+      i,
+      `Missing whitespace parser character at index ${i}`,
+    );
+    const startTime = atOrThrow(
+      startTimes,
+      i,
+      `Missing whitespace parser start time at index ${i}`,
+    );
     const isWhitespace =
       char === " " || char === "\n" || char === "\t" || char === "\r";
 
@@ -138,8 +147,13 @@ function parseWithSegmenter(
   const offsetToCharIndex = new Map<number, number>();
   let offset = 0;
   for (let ci = 0; ci < characters.length; ci++) {
+    const character = atOrThrow(
+      characters,
+      ci,
+      `Missing ElevenLabs alignment character at index ${ci}`,
+    );
     offsetToCharIndex.set(offset, ci);
-    offset += characters[ci]!.length;
+    offset += character.length;
   }
 
   // Segment the full text into words

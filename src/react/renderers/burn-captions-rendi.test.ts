@@ -17,29 +17,29 @@
 import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { $ } from "bun";
-import { r2Storage } from "@/ai-sdk/storage/r2";
-import { createRendiBackend } from "@/ai-sdk/providers/editly/rendi";
 import type { FFmpegOutput } from "@/ai-sdk/providers/editly/backends/types";
+import { createRendiBackend } from "@/ai-sdk/providers/editly/rendi";
+import { r2Storage } from "@/ai-sdk/storage/r2";
 import {
   burnCaptions,
-  ensureLocalFonts,
   type CaptionFontFile,
+  ensureLocalFonts,
 } from "./burn-captions";
 import {
+  calculateEmojiSize,
+  calculateEmojiY,
   type EmojiOverlay,
   extractEmoji,
   stripEmoji,
-  calculateEmojiSize,
-  calculateEmojiY,
 } from "./emoji";
+import { resolveFonts } from "./fonts";
 import {
+  type FontPathMap,
+  getCharXPositions,
   getFontMetrics,
   getSpaceWidth,
-  getCharXPositions,
   parseASSSegments,
-  type FontPathMap,
 } from "./text-measure";
-import { resolveFonts } from "./fonts";
 
 // ---------------------------------------------------------------------------
 // Gate
@@ -52,22 +52,23 @@ const shouldRun =
 // Constants
 // ---------------------------------------------------------------------------
 
-const TEST_VIDEO = "https://s3.varg.ai/test-media/sora-landscape.mp4";
+const TEST_VIDEO =
+  "https://storage.rendi.dev/sample/big_buck_bunny_720p_5sec_intro.mp4";
 const VIDEO_WIDTH = 1280;
 const VIDEO_HEIGHT = 720;
 const OUTPUT_DIR = "output/rendi";
 
 // Font definitions (matching what's on S3)
 const MONTSERRAT: CaptionFontFile = {
-  url: "https://s3.varg.ai/fonts/Montserrat-Bold.ttf",
+  url: "https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM70w-.ttf",
   fileName: "Montserrat-Bold.ttf",
 };
-const NOTO_CJK_JP: CaptionFontFile = {
-  url: "https://s3.varg.ai/fonts/NotoSansCJKjp-Bold.otf",
+const _NOTO_CJK_JP: CaptionFontFile = {
+  url: "https://fonts.gstatic.com/s/notosansjp/v56/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFPYk75s.ttf",
   fileName: "NotoSansCJKjp-Bold.otf",
 };
-const NOTO_ARABIC: CaptionFontFile = {
-  url: "https://s3.varg.ai/fonts/NotoSansArabic-Bold.ttf",
+const _NOTO_ARABIC: CaptionFontFile = {
+  url: "https://fonts.gstatic.com/s/notosansarabic/v33/nwpxtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCfL2uvuw.ttf",
   fileName: "NotoSansArabic-Bold.ttf",
 };
 
@@ -166,7 +167,15 @@ async function buildEmojiOverlays(opts: {
   fontResolution: ReturnType<typeof resolveFonts>;
   spacesPerEmoji: number;
 }> {
-  const { text, primaryFontId, fontSize, alignment, marginV, startTime, endTime } = opts;
+  const {
+    text,
+    primaryFontId,
+    fontSize,
+    alignment,
+    marginV,
+    startTime,
+    endTime,
+  } = opts;
 
   // Resolve fonts needed for this text
   const fontResolution = resolveFonts(text, primaryFontId);
@@ -185,7 +194,11 @@ async function buildEmojiOverlays(opts: {
   // Get primary font metrics
   const primaryFontPath = fontPathMap.get(fontResolution.primary.fontName)!;
   const metrics = getFontMetrics(primaryFontPath, fontSize);
-  const emojiSize = calculateEmojiSize(metrics.winAscent, VIDEO_HEIGHT, VIDEO_HEIGHT);
+  const emojiSize = calculateEmojiSize(
+    metrics.winAscent,
+    VIDEO_HEIGHT,
+    VIDEO_HEIGHT,
+  );
   const spaceWidth = getSpaceWidth(primaryFontPath, fontSize);
   const spacesPerEmoji = Math.max(1, Math.ceil(emojiSize / spaceWidth) + 1);
 
@@ -197,7 +210,10 @@ async function buildEmojiOverlays(opts: {
   const strippedTaggedText = fontResolution.tagText(strippedText);
 
   // Parse into segments and compute character X positions
-  const segments = parseASSSegments(strippedTaggedText, fontResolution.primary.fontName);
+  const segments = parseASSSegments(
+    strippedTaggedText,
+    fontResolution.primary.fontName,
+  );
   const charPositions = getCharXPositions(
     segments,
     fontPathMap,
@@ -256,7 +272,11 @@ describe.skipIf(!shouldRun)("burnCaptions via Rendi", () => {
       marginV: 40,
       dialogues: [
         { start: "0:00:00.00", end: "0:00:02.00", text: "Hello from Rendi" },
-        { start: "0:00:02.00", end: "0:00:04.00", text: "Caption burning test" },
+        {
+          start: "0:00:02.00",
+          end: "0:00:04.00",
+          text: "Caption burning test",
+        },
       ],
     });
     const assPath = writeASS("plain", assContent);
@@ -280,7 +300,11 @@ describe.skipIf(!shouldRun)("burnCaptions via Rendi", () => {
       marginV: 50,
       dialogues: [
         { start: "0:00:00.00", end: "0:00:02.00", text: "Montserrat Bold" },
-        { start: "0:00:02.00", end: "0:00:04.00", text: "Custom font via Rendi" },
+        {
+          start: "0:00:02.00",
+          end: "0:00:04.00",
+          text: "Custom font via Rendi",
+        },
       ],
     });
     const assPath = writeASS("font", assContent);
@@ -303,15 +327,16 @@ describe.skipIf(!shouldRun)("burnCaptions via Rendi", () => {
     const alignment = 2;
     const marginV = 50;
 
-    const { overlays, strippedTaggedText, fontResolution } = await buildEmojiOverlays({
-      text: originalText,
-      primaryFontId: "montserrat",
-      fontSize,
-      alignment,
-      marginV,
-      startTime: 0,
-      endTime: 4,
-    });
+    const { overlays, strippedTaggedText, fontResolution } =
+      await buildEmojiOverlays({
+        text: originalText,
+        primaryFontId: "montserrat",
+        fontSize,
+        alignment,
+        marginV,
+        startTime: 0,
+        endTime: 4,
+      });
 
     console.log(`[test] English emoji: ${overlays.length} overlays`);
     for (const o of overlays) {
@@ -353,15 +378,16 @@ describe.skipIf(!shouldRun)("burnCaptions via Rendi", () => {
     const alignment = 2;
     const marginV = 50;
 
-    const { overlays, strippedTaggedText, fontResolution } = await buildEmojiOverlays({
-      text: originalText,
-      primaryFontId: "montserrat",
-      fontSize,
-      alignment,
-      marginV,
-      startTime: 0,
-      endTime: 4,
-    });
+    const { overlays, strippedTaggedText, fontResolution } =
+      await buildEmojiOverlays({
+        text: originalText,
+        primaryFontId: "montserrat",
+        fontSize,
+        alignment,
+        marginV,
+        startTime: 0,
+        endTime: 4,
+      });
 
     console.log(`[test] Japanese emoji: ${overlays.length} overlays`);
     for (const o of overlays) {
@@ -402,15 +428,16 @@ describe.skipIf(!shouldRun)("burnCaptions via Rendi", () => {
     const alignment = 2;
     const marginV = 50;
 
-    const { overlays, strippedTaggedText, fontResolution } = await buildEmojiOverlays({
-      text: originalText,
-      primaryFontId: "montserrat",
-      fontSize,
-      alignment,
-      marginV,
-      startTime: 0,
-      endTime: 4,
-    });
+    const { overlays, strippedTaggedText, fontResolution } =
+      await buildEmojiOverlays({
+        text: originalText,
+        primaryFontId: "montserrat",
+        fontSize,
+        alignment,
+        marginV,
+        startTime: 0,
+        endTime: 4,
+      });
 
     console.log(`[test] Arabic emoji: ${overlays.length} overlays`);
     for (const o of overlays) {

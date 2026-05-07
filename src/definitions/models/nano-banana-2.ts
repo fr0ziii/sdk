@@ -4,11 +4,7 @@
  */
 
 import { z } from "zod";
-import type {
-  ModelDefinition,
-  ProviderPricing,
-  ZodSchema,
-} from "../../core/schema/types";
+import type { ModelDefinition, ZodSchema } from "../../core/schema/types";
 
 // Nano Banana 2 resolution options (includes 0.5K unlike nano-banana-pro)
 const nanoBanana2ResolutionSchema = z.enum(["0.5K", "1K", "2K", "4K"]);

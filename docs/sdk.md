@@ -5,23 +5,28 @@ typescript sdk for ai video generation, built on vercel ai sdk patterns.
 ## installation
 
 ```bash
-# core sdk
-npm install @varg/sdk ai
-
-# providers (install what you need)
-npm install @varg/fal           # fal.ai (kling, nano-banana, lipsync)
-npm install @varg/elevenlabs    # elevenlabs (tts, music)
-npm install @varg/higgsfield    # higgsfield (soul, characters)
-npm install @varg/heygen        # heygen (talking heads)
-npm install @varg/openai        # openai (sora, gpt-image, dall-e)
-npm install @varg/replicate     # replicate (birefnet, any model)
+bun install vargai ai
+# or
+npm install vargai ai
 ```
+
+Providers are exported from `vargai/ai`; install and configure the upstream provider accounts you use.
+
+```bash
+FAL_API_KEY=fal_xxx
+ELEVENLABS_API_KEY=xxx
+OPENAI_API_KEY=sk_xxx
+REPLICATE_API_TOKEN=r8_xxx
+GROQ_API_KEY=gsk_xxx
+```
+
+There is no hosted gateway fallback. Calls go directly to the selected provider, and billing/auth use that provider's API key.
 
 ## quick start
 
 ```typescript
 import { generateImage, generateVideo } from "ai";
-import { fal } from "@varg/fal";
+import { fal } from "vargai/ai";
 
 const { image } = await generateImage({
   model: fal.imageModel("nano-banana-pro"),
@@ -48,7 +53,7 @@ const { video } = await generateVideo({
 load media from disk, urls, or buffers:
 
 ```typescript
-import { File } from "@varg/sdk";
+import { File } from "vargai/ai";
 
 // from disk
 const file = File.fromPath("media/portrait.jpg");
@@ -66,16 +71,13 @@ const base64 = await file.base64();
 
 ### providers
 
-each provider is a separate package:
+providers are direct exports from `vargai/ai`:
 
 ```typescript
-import { fal } from "@varg/fal";
-import { elevenlabs } from "@varg/elevenlabs";
-import { heygen } from "@varg/heygen";
-import { higgsfield } from "@varg/higgsfield";
-import { openai } from "@varg/openai";
-import { replicate } from "@varg/replicate";
+import { fal, elevenlabs, heygen, higgsfield, openai, replicate } from "vargai/ai";
 ```
+
+Use provider-specific environment variables. The SDK does not read legacy gateway keys, global credential files, or account credentials.
 
 ---
 
@@ -85,8 +87,8 @@ import { replicate } from "@varg/replicate";
 
 ```typescript
 import { generateImage } from "ai";
-import { fal } from "@varg/fal";
-import { higgsfield } from "@varg/higgsfield";
+import { fal } from "vargai/ai";
+import { higgsfield } from "vargai/ai";
 
 // fal nano-banana - options on model or in providerOptions
 const { image } = await generateImage({
@@ -127,8 +129,8 @@ generate reusable elements for consistent generation:
 
 ```typescript
 import { generateImage, generateVideo } from "ai";
-import { generateElement, scene, File } from "@varg/sdk";
-import { fal } from "@varg/fal";
+import { generateElement, scene, File } from "vargai/ai";
+import { fal } from "vargai/ai";
 
 // create character element
 const { element: ralph } = await generateElement({
@@ -182,7 +184,7 @@ interface Element {
 
 ```typescript
 import { generateVideo } from "ai";
-import { fal } from "@varg/fal";
+import { fal } from "vargai/ai";
 
 const { video } = await generateVideo({
   model: fal.videoModel("kling-v2.5"),
@@ -207,8 +209,8 @@ const { video } = await generateVideo({
 ### talking head from photo
 
 ```typescript
-import { generateTalkingHead } from "@varg/sdk";
-import { heygen } from "@varg/heygen";
+import { generateTalkingHead } from "vargai/ai";
+import { heygen } from "vargai/ai";
 
 const { video } = await generateTalkingHead({
   model: heygen.talkingHeadModel("avatar-iv"),
@@ -227,7 +229,7 @@ const { video } = await generateTalkingHead({
 
 ```typescript
 import { generateSpeech } from "ai";
-import { elevenlabs } from "@varg/elevenlabs";
+import { elevenlabs } from "vargai/ai";
 
 const { audio } = await generateSpeech({
   model: elevenlabs.speechModel("eleven-turbo-v2"),
@@ -247,8 +249,8 @@ await Bun.write("output/voiceover.mp3", audio.uint8Array);
 ### music generation
 
 ```typescript
-import { generateMusic } from "@varg/sdk";
-import { elevenlabs } from "@varg/elevenlabs";
+import { generateMusic } from "vargai/ai";
+import { elevenlabs } from "vargai/ai";
 
 const { audio } = await generateMusic({
   model: elevenlabs.musicModel("sound-generation"),
@@ -264,8 +266,8 @@ const { audio } = await generateMusic({
 sync video to audio:
 
 ```typescript
-import { generateLipsync } from "@varg/sdk";
-import { fal } from "@varg/fal";
+import { generateLipsync } from "vargai/ai";
+import { fal } from "vargai/ai";
 
 const { video } = await generateLipsync({
   model: fal.lipsyncModel("sync-v2-pro"),
@@ -286,8 +288,8 @@ use [editly](https://github.com/mifi/editly) directly for video composition. we 
 ```typescript
 import editly from "editly";
 import { generateVideo, generateImage } from "ai";
-import { File } from "@varg/sdk";
-import { fal } from "@varg/fal";
+import { File } from "vargai/ai";
+import { fal } from "vargai/ai";
 
 // generate with ai
 const { video } = await generateVideo({
@@ -344,7 +346,7 @@ see [editly docs](https://github.com/mifi/editly) for full api.
 ### add captions
 
 ```typescript
-import { addCaptions } from "@varg/sdk";
+import { addCaptions } from "vargai/ai";
 
 // tiktok-style word-by-word captions
 const { video } = await addCaptions({
@@ -368,7 +370,7 @@ const { video } = await addCaptions({
 ### add music to video
 
 ```typescript
-import { addMusic } from "@varg/sdk";
+import { addMusic } from "vargai/ai";
 
 const { video } = await addMusic({
   video: File.fromPath("media/video.mp4"),
@@ -385,8 +387,8 @@ const { video } = await addMusic({
 ### add voiceover to video
 
 ```typescript
-import { addVoiceover } from "@varg/sdk";
-import { elevenlabs } from "@varg/elevenlabs";
+import { addVoiceover } from "vargai/ai";
+import { elevenlabs } from "vargai/ai";
 
 const { video } = await addVoiceover({
   video: File.fromPath("media/video.mp4"),
@@ -405,7 +407,7 @@ const { video } = await addVoiceover({
 convert 9:16 to 4:5 with blurred sides:
 
 ```typescript
-import { resizeVideo } from "@varg/sdk";
+import { resizeVideo } from "vargai/ai";
 
 const { video } = await resizeVideo({
   video: File.fromPath("media/vertical-video.mp4"),
@@ -418,7 +420,7 @@ const { video } = await resizeVideo({
 ### crop to aspect ratio
 
 ```typescript
-import { cropVideo } from "@varg/sdk";
+import { cropVideo } from "vargai/ai";
 
 const { video } = await cropVideo({
   video: File.fromPath("media/landscape.mp4"),
@@ -430,7 +432,7 @@ const { video } = await cropVideo({
 ### picture in picture
 
 ```typescript
-import { createPiP } from "@varg/sdk";
+import { createPiP } from "vargai/ai";
 
 const { video } = await createPiP({
   background: File.fromPath("media/background.mp4"),
@@ -449,7 +451,7 @@ const { video } = await createPiP({
 ### split screen (before/after)
 
 ```typescript
-import { createSplitScreen } from "@varg/sdk";
+import { createSplitScreen } from "vargai/ai";
 
 const { video } = await createSplitScreen({
   left: File.fromPath("media/before.mp4"),
@@ -465,7 +467,7 @@ const { video } = await createSplitScreen({
 animated slider revealing transformation:
 
 ```typescript
-import { createSlider } from "@varg/sdk";
+import { createSlider } from "vargai/ai";
 
 const { video } = await createSlider({
   before: File.fromPath("media/before.jpg"),
@@ -482,7 +484,7 @@ const { video } = await createSlider({
 card-push transition between media:
 
 ```typescript
-import { createPushTransition } from "@varg/sdk";
+import { createPushTransition } from "vargai/ai";
 
 const { video } = await createPushTransition({
   before: File.fromPath("media/slide-1.jpg"),
@@ -498,7 +500,7 @@ const { video } = await createPushTransition({
 card swipe animation through multiple images:
 
 ```typescript
-import { createSwipeAnimation } from "@varg/sdk";
+import { createSwipeAnimation } from "vargai/ai";
 
 const { video } = await createSwipeAnimation({
   images: [
@@ -518,7 +520,7 @@ const { video } = await createSwipeAnimation({
 ### slideshow with transitions
 
 ```typescript
-import { createSlideshow } from "@varg/sdk";
+import { createSlideshow } from "vargai/ai";
 
 const { video } = await createSlideshow({
   images: [
@@ -536,7 +538,7 @@ const { video } = await createSlideshow({
 ### zoom effects
 
 ```typescript
-import { applyZoom } from "@varg/sdk";
+import { applyZoom } from "vargai/ai";
 
 const { video } = await applyZoom({
   video: File.fromPath("media/video.mp4"),
@@ -553,7 +555,7 @@ const { video } = await applyZoom({
 ### concatenate videos
 
 ```typescript
-import { concatenateVideos } from "@varg/sdk";
+import { concatenateVideos } from "vargai/ai";
 
 const { video } = await concatenateVideos({
   videos: [
@@ -569,7 +571,7 @@ const { video } = await concatenateVideos({
 ### create packshot (end card)
 
 ```typescript
-import { createPackshot } from "@varg/sdk";
+import { createPackshot } from "vargai/ai";
 
 const { video } = await createPackshot({
   background: File.fromPath("media/product.jpg"),
@@ -587,7 +589,7 @@ const { video } = await createPackshot({
 ### composite (layered video)
 
 ```typescript
-import { compositeVideos } from "@varg/sdk";
+import { compositeVideos } from "vargai/ai";
 
 const { video } = await compositeVideos({
   layers: [
@@ -605,8 +607,8 @@ const { video } = await compositeVideos({
 ### remove background
 
 ```typescript
-import { removeBackground } from "@varg/sdk";
-import { replicate } from "@varg/replicate";
+import { removeBackground } from "vargai/ai";
+import { replicate } from "vargai/ai";
 
 const { image } = await removeBackground({
   model: replicate.imageModel("birefnet"),
@@ -631,10 +633,10 @@ import {
   createPackshot,
   concatenateVideos,
   File,
-} from "@varg/sdk";
-import { fal } from "@varg/fal";
-import { elevenlabs } from "@varg/elevenlabs";
-import { higgsfield } from "@varg/higgsfield";
+} from "vargai/ai";
+import { fal } from "vargai/ai";
+import { elevenlabs } from "vargai/ai";
+import { higgsfield } from "vargai/ai";
 
 async function createVideoAd() {
   // 1. generate character image

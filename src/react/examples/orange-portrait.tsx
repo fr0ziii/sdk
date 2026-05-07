@@ -25,8 +25,8 @@ export default (
 
                 Shot on 85mm f/1.4 lens, shallow depth of field. Clean studio lighting — soft key light on face, subtle rim light on hair and shoulders for separation. High-end fashion editorial aesthetic.`,
                 images: [
-                  "https://s3.varg.ai/uploads/images/1_0475e227.png",
-                  "https://s3.varg.ai/uploads/images/xyearp51qvve-zi3nrcve-zbno2hfgt5gergjrof_995f553d.png",
+                  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=768",
+                  "https://images.unsplash.com/photo-1557683316-973673baf926?w=768",
                 ],
               },
               model: fal.imageModel("nano-banana-pro/edit"),

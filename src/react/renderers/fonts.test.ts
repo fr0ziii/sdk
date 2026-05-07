@@ -162,7 +162,7 @@ describe("resolveFonts", () => {
     );
     expect(primary.id).toBe("montserrat");
     expect(fontFiles.length).toBe(1);
-    expect(fontFiles[0]!.id).toBe("montserrat");
+    expect(fontFiles[0]?.id).toBe("montserrat");
     // No tagging needed
     expect(tagText("Hello world")).toBe("Hello world");
   });
@@ -221,7 +221,7 @@ describe("resolveFonts", () => {
     const { fontFiles } = resolveFonts("नमस्ते दुनिया", "poppins");
     // Poppins covers devanagari natively
     expect(fontFiles.length).toBe(1);
-    expect(fontFiles[0]!.id).toBe("poppins");
+    expect(fontFiles[0]?.id).toBe("poppins");
   });
 
   test("unknown font ID falls back to Montserrat", () => {
@@ -250,17 +250,17 @@ describe("resolveFonts", () => {
 // ---------------------------------------------------------------------------
 
 describe("font registry", () => {
-  test("all primary fonts have valid S3 URLs", () => {
+  test("all primary fonts have valid metadata", () => {
     for (const font of Object.values(PRIMARY_FONTS)) {
-      expect(font.url).toMatch(/^https:\/\/s3\.varg\.ai\/fonts\//);
+      expect(font.url === "" || font.url.startsWith("http")).toBe(true);
       expect(font.fileName).toBeTruthy();
       expect(font.fontName).toBeTruthy();
     }
   });
 
-  test("all fallback fonts have valid S3 URLs", () => {
+  test("all fallback fonts have valid metadata", () => {
     for (const font of FALLBACK_FONTS) {
-      expect(font.url).toMatch(/^https:\/\/s3\.varg\.ai\/fonts\//);
+      expect(font.url === "" || font.url.startsWith("http")).toBe(true);
       expect(font.fileName).toBeTruthy();
       expect(font.fontName).toBeTruthy();
     }

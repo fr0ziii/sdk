@@ -157,7 +157,7 @@ export interface ModelDefinition<S extends ZodSchema = ZodSchema> {
   /**
    * Raw provider cost formulas, keyed by provider name.
    * Each formula calculates the estimated provider cost in USD for a given
-   * set of generation parameters. The gateway applies markup on top of this.
+   * set of generation parameters. Applications may apply their own markup on top.
    */
   pricing?: Record<string, ProviderPricing>;
 }
@@ -215,7 +215,7 @@ export type Definition =
 /**
  * Standard inputs for pricing calculation.
  * Every model's pricing function receives this — unused fields are undefined.
- * This is the raw provider cost calculation — the gateway adds markup on top.
+ * This is the raw provider cost calculation before any application-level markup.
  */
 export interface PricingParams {
   // Output params (from the generation request)

@@ -12,6 +12,7 @@
  * what libass actually renders.
  */
 
+import { readFileSync } from "node:fs";
 import * as opentype from "opentype.js";
 
 // ---------------------------------------------------------------------------
@@ -26,7 +27,12 @@ const fontCache = new Map<string, opentype.Font>();
 export function loadFont(fontPath: string): opentype.Font {
   let font = fontCache.get(fontPath);
   if (!font) {
-    font = opentype.loadSync(fontPath);
+    const data = readFileSync(fontPath);
+    const buffer = data.buffer.slice(
+      data.byteOffset,
+      data.byteOffset + data.byteLength,
+    );
+    font = opentype.parse(buffer);
     fontCache.set(fontPath, font);
   }
   return font;
@@ -107,12 +113,26 @@ Dialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,${text}`;
 
   try {
     // Render to raw RGB pixels
-    const proc = Bun.spawnSync([
-      "ffmpeg", "-y", "-f", "lavfi",
-      "-i", `color=black:s=${playResX}x${h}:d=1:r=1`,
-      "-vf", `subtitles='${assPath.replace(/'/g, "'\\''")}':fontsdir='${fontDir}'`,
-      "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-",
-    ], { stdout: "pipe", stderr: "pipe" });
+    const proc = Bun.spawnSync(
+      [
+        "ffmpeg",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        `color=black:s=${playResX}x${h}:d=1:r=1`,
+        "-vf",
+        `subtitles='${assPath.replace(/'/g, "'\\''")}':fontsdir='${fontDir}'`,
+        "-frames:v",
+        "1",
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgb24",
+        "-",
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
 
     if (proc.exitCode !== 0) {
       // Fallback: return a rough estimate
@@ -128,7 +148,11 @@ Dialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,${text}`;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const off = (y * w + x) * 3;
-        if (pixels[off]! > 20 || pixels[off + 1]! > 20 || pixels[off + 2]! > 20) {
+        if (
+          pixels[off]! > 20 ||
+          pixels[off + 1]! > 20 ||
+          pixels[off + 2]! > 20
+        ) {
           if (x < minX) minX = x;
           if (x > maxX) maxX = x;
         }
@@ -139,7 +163,9 @@ Dialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,${text}`;
     renderedWidthCache.set(cacheKey, width);
     return width;
   } finally {
-    try { unlinkSync(assPath); } catch {}
+    try {
+      unlinkSync(assPath);
+    } catch {}
   }
 }
 
@@ -196,12 +222,26 @@ Dialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,${taggedText}`;
   writeFileSync(assPath, assContent);
 
   try {
-    const proc = Bun.spawnSync([
-      "ffmpeg", "-y", "-f", "lavfi",
-      "-i", `color=black:s=${playResX}x${playResY}:d=1:r=1`,
-      "-vf", `subtitles='${assPath.replace(/'/g, "'\\''")}':fontsdir='${fontDir}'`,
-      "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-",
-    ], { stdout: "pipe", stderr: "pipe" });
+    const proc = Bun.spawnSync(
+      [
+        "ffmpeg",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        `color=black:s=${playResX}x${playResY}:d=1:r=1`,
+        "-vf",
+        `subtitles='${assPath.replace(/'/g, "'\\''")}':fontsdir='${fontDir}'`,
+        "-frames:v",
+        "1",
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgb24",
+        "-",
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
 
     if (proc.exitCode !== 0) return [];
 
@@ -214,7 +254,11 @@ Dialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,${taggedText}`;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const off = (y * w + x) * 3;
-        if (pixels[off]! > 20 || pixels[off + 1]! > 20 || pixels[off + 2]! > 20) {
+        if (
+          pixels[off]! > 20 ||
+          pixels[off + 1]! > 20 ||
+          pixels[off + 2]! > 20
+        ) {
           colHasText[x] = 1;
         }
       }
@@ -279,13 +323,21 @@ Dialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,${taggedText}`;
       // Trailing spaces in logical order appear at visual LEFT for RTL
       if (hasLeadingSpaces && missingCount > 0) {
         // Begin emoji: place at the visual RIGHT edge of text
-        const x = Math.round(textRight + 1 + (emojiSize * 0.1));
-        gaps.push({ gapStart: textRight + 1, gapEnd: textRight + emojiSize, x });
+        const x = Math.round(textRight + 1 + emojiSize * 0.1);
+        gaps.push({
+          gapStart: textRight + 1,
+          gapEnd: textRight + emojiSize,
+          x,
+        });
       }
       if (hasTrailingSpaces && gaps.length < numEmoji) {
         // End emoji: place at the visual LEFT edge of text
-        const x = Math.round(textLeft - emojiSize - (emojiSize * 0.1));
-        gaps.unshift({ gapStart: textLeft - emojiSize, gapEnd: textLeft - 1, x });
+        const x = Math.round(textLeft - emojiSize - emojiSize * 0.1);
+        gaps.unshift({
+          gapStart: textLeft - emojiSize,
+          gapEnd: textLeft - 1,
+          x,
+        });
       }
     }
 
@@ -293,7 +345,9 @@ Dialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,${taggedText}`;
     gaps.sort((a, b) => a.gapStart - b.gapStart);
     return gaps.slice(0, numEmoji);
   } finally {
-    try { unlinkSync(assPath); } catch {}
+    try {
+      unlinkSync(assPath);
+    } catch {}
   }
 }
 
@@ -348,13 +402,11 @@ export function getFontMetrics(
   const winDesc: number = os2?.usWinDescent ?? 0;
   const cellHeight = winAsc + winDesc;
   const ppem =
-    cellHeight > 0
-      ? (assFontSize * font.unitsPerEm) / cellHeight
-      : assFontSize;
+    cellHeight > 0 ? (assFontSize * font.unitsPerEm) / cellHeight : assFontSize;
 
   return {
     ppem,
-    capHeight: (((os2?.sCapHeight ?? 700) * ppem) / font.unitsPerEm),
+    capHeight: ((os2?.sCapHeight ?? 700) * ppem) / font.unitsPerEm,
     winAscent: (winAsc * ppem) / font.unitsPerEm,
     winDescent: (winDesc * ppem) / font.unitsPerEm,
   };
@@ -438,10 +490,7 @@ export type FontPathMap = Map<string, string>;
  * @param fontPath - Local path to the TTF/OTF file
  * @param assFontSize - The ASS fontSize (full cell height, not ppem)
  */
-export function getSpaceWidth(
-  fontPath: string,
-  assFontSize: number,
-): number {
+export function getSpaceWidth(fontPath: string, assFontSize: number): number {
   const ppem = getEffectivePpem(fontPath, assFontSize);
   const font = loadFont(fontPath);
   return font.getAdvanceWidth(" ", ppem);

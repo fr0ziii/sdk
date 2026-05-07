@@ -4,11 +4,7 @@
  */
 
 import { z } from "zod";
-import type {
-  ModelDefinition,
-  ProviderPricing,
-  ZodSchema,
-} from "../../core/schema/types";
+import type { ModelDefinition, ZodSchema } from "../../core/schema/types";
 
 // Llama model variants schema
 const llamaModelSchema = z.enum([

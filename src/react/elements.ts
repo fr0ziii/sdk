@@ -213,7 +213,7 @@ export function Packshot(props: PackshotProps): VargElement<"packshot"> {
 }
 
 // ---------------------------------------------------------------------------
-// FFmpeg processing elements (awaitable, resolve via gateway/Rendi)
+// FFmpeg processing elements (awaitable, resolve via configured FFmpeg backend)
 // ---------------------------------------------------------------------------
 
 /**
@@ -270,7 +270,7 @@ export function FFmpeg(
  * with duration, resolution, codec, and other info in `.meta`.
  *
  * ```tsx
- * const info = await Probe({ src: "https://s3.varg.ai/o/video.mp4" });
+ * const info = await Probe({ src: "https://example.com/video.mp4" });
  * info.duration, info.meta.width, info.meta.height
  * ```
  */

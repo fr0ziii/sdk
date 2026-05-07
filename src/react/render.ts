@@ -1,4 +1,4 @@
-import { type CacheStorage, withCache } from "../ai-sdk/cache";
+import type { CacheStorage } from "../ai-sdk/cache";
 import { fileCache } from "../ai-sdk/file-cache";
 import { localBackend } from "../ai-sdk/providers/editly";
 import { renderRoot } from "./renderers";

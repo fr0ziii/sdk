@@ -124,10 +124,10 @@ describe("segmentWords", () => {
 
   test("returns character indices", () => {
     const result = segmentWords("Hello world");
-    expect(result[0]!.index).toBe(0);
-    expect(result[0]!.length).toBe(5);
-    expect(result[1]!.index).toBe(6); // after "Hello "
-    expect(result[1]!.length).toBe(5);
+    expect(result[0]?.index).toBe(0);
+    expect(result[0]?.length).toBe(5);
+    expect(result[1]?.index).toBe(6); // after "Hello "
+    expect(result[1]?.length).toBe(5);
   });
 });
 

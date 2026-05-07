@@ -7,11 +7,7 @@
  */
 
 import { z } from "zod";
-import type {
-  ModelDefinition,
-  ProviderPricing,
-  ZodSchema,
-} from "../../core/schema/types";
+import type { ModelDefinition, ZodSchema } from "../../core/schema/types";
 
 // Shared enums
 const photaOutputFormatSchema = z.enum(["jpeg", "png", "webp"]);

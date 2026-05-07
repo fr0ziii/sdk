@@ -11,33 +11,12 @@ import { renderStatic } from "../ui/render.ts";
 
 const AUTO_IMPORTS = `/** @jsxImportSource vargai */
 import { Captions, Clip, Image, Music, Overlay, Packshot, Render, Slider, Speech, Split, Subtitle, Swipe, TalkingHead, Title, Video, Grid } from "vargai/react";
-import { fal, elevenlabs, replicate, varg } from "vargai/ai";
+import { fal, elevenlabs, replicate } from "vargai/ai";
 `;
 
 async function detectDefaultModels(): Promise<DefaultModels | undefined> {
   const defaults: DefaultModels = {};
 
-  // Gateway provider — single key for all models (recommended)
-  // Check env var first, then global credentials (~/.varg/credentials)
-  let hasVargKey = !!process.env.VARG_API_KEY;
-  if (!hasVargKey) {
-    try {
-      const { getGlobalApiKey } = await import("../credentials");
-      hasVargKey = !!getGlobalApiKey();
-    } catch {
-      // credentials module may not be available
-    }
-  }
-
-  if (hasVargKey) {
-    const { varg } = await import("../../ai-sdk/providers/varg");
-    defaults.image = varg.imageModel("nano-banana-pro");
-    defaults.video = varg.videoModel("kling-v3");
-    defaults.speech = varg.speechModel("eleven_v3");
-    defaults.music = varg.musicModel("music_v1");
-  }
-
-  // Direct providers override gateway when available
   const falKey = process.env.FAL_API_KEY ?? process.env.FAL_KEY;
   if (falKey) {
     const { fal } = await import("../../ai-sdk/providers/fal");
@@ -75,9 +54,7 @@ async function loadComponent(filePath: string): Promise<VargElement> {
   const hasVargaiImport =
     source.includes("from 'vargai") ||
     source.includes('from "vargai') ||
-    source.includes("@jsxImportSource vargai") ||
-    source.includes('from "@vargai/gateway"') ||
-    source.includes("from '@vargai/gateway'");
+    source.includes("@jsxImportSource vargai");
 
   const hasRelativeImport =
     source.includes("from './") || source.includes('from "./');
@@ -97,13 +74,12 @@ async function loadComponent(filePath: string): Promise<VargElement> {
   if (hasVargaiImport) {
     const tmpFile = `${tmpDir}/${Date.now()}.tsx`;
     // Resolve all vargai-related imports to absolute paths so they work from
-    // the bunx cache dir (where @vargai/gateway and vargai/* aren't installed)
+    // the bunx cache dir (where vargai/* isn't installed)
     const runtimeDir = resolve(pkgDir, "src/react/runtime");
     const aiSdkDir = resolve(pkgDir, "src/ai-sdk/index.ts");
     const reactDir = resolve(pkgDir, "src/react/index.ts");
     const resolvedSource = source
       .replace(/@jsxImportSource\s+vargai/, `@jsxImportSource ${runtimeDir}`)
-      .replace(/from\s+["']@vargai\/gateway["']/g, `from "${aiSdkDir}"`)
       .replace(/from\s+["']vargai\/ai["']/g, `from "${aiSdkDir}"`)
       .replace(/from\s+["']vargai\/react["']/g, `from "${reactDir}"`);
     await Bun.write(tmpFile, resolvedSource);
@@ -219,7 +195,7 @@ async function runRender(
 
   const defaults = await detectDefaultModels();
 
-  const buffer = await render(component, {
+  const result = await render(component, {
     output: outputPath,
     cache: useCache ? (args.cache as string) : undefined,
     mode,
@@ -228,7 +204,7 @@ async function runRender(
   });
 
   if (!args.quiet) {
-    console.log(`done! ${buffer.byteLength} bytes → ${outputPath}`);
+    console.log(`done! ${result.video.byteLength} bytes → ${outputPath}`);
   }
 
   if (args.open) {

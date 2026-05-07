@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { atOrThrow } from "../../core/utils/guards";
 
 export interface AssSegment {
   assPath: string;
@@ -12,12 +13,15 @@ export interface AssSegment {
 function parseAssTime(ts: string): number {
   const match = ts.match(/^(\d+):(\d{2}):(\d{2})\.(\d{2})$/);
   if (!match) return 0;
-  const [, h, m, s, cs] = match;
+  const h = atOrThrow(match, 1, "Missing ASS hours capture");
+  const m = atOrThrow(match, 2, "Missing ASS minutes capture");
+  const s = atOrThrow(match, 3, "Missing ASS seconds capture");
+  const cs = atOrThrow(match, 4, "Missing ASS centiseconds capture");
   return (
-    Number.parseInt(h!, 10) * 3600 +
-    Number.parseInt(m!, 10) * 60 +
-    Number.parseInt(s!, 10) +
-    Number.parseInt(cs!, 10) / 100
+    Number.parseInt(h, 10) * 3600 +
+    Number.parseInt(m, 10) * 60 +
+    Number.parseInt(s, 10) +
+    Number.parseInt(cs, 10) / 100
   );
 }
 
@@ -99,13 +103,25 @@ export function mergeAssFiles(
       if (parts.length < 10) continue;
 
       // Shift Start (index 1) and End (index 2)
-      const startTs = parts[1]!.trim();
-      const endTs = parts[2]!.trim();
+      const startTs = atOrThrow(
+        parts,
+        1,
+        "Missing ASS dialogue start timestamp",
+      ).trim();
+      const endTs = atOrThrow(
+        parts,
+        2,
+        "Missing ASS dialogue end timestamp",
+      ).trim();
       parts[1] = formatAssTime(parseAssTime(startTs) + segment.timeOffset);
       parts[2] = formatAssTime(parseAssTime(endTs) + segment.timeOffset);
 
       // Rename style reference (index 3)
-      const styleName = parts[3]!.trim();
+      const styleName = atOrThrow(
+        parts,
+        3,
+        "Missing ASS dialogue style",
+      ).trim();
       parts[3] = `${styleName}${suffix}`;
 
       allDialogues.push(parts.join(","));

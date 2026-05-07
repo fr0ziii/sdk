@@ -18,7 +18,7 @@ import type { MusicModelV3, MusicModelV3CallOptions } from "../music-model";
  * passed directly as the `voice` parameter and it will be forwarded as-is.
  *
  * For the full catalog of 600+ voices, use voice_id strings directly or
- * call the gateway's GET /v1/voices endpoint to browse/search.
+ * call ElevenLabs' voices endpoint to browse/search.
  */
 const VOICES: Record<string, string> = {
   // Current ElevenLabs premade voices (source: skills/varg-ai/references/models.md)

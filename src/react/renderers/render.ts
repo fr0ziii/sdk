@@ -22,6 +22,7 @@ import type {
   Layer,
   VideoLayer,
 } from "../../ai-sdk/providers/editly/types";
+import { atOrThrow } from "../../core/utils/guards";
 import { ResolvedElement } from "../resolved-element";
 import type {
   ClipProps,
@@ -126,18 +127,28 @@ export async function renderRoot(
   const onGeneration = options.onGeneration;
 
   /** Extract pricing metadata from provider response and emit via callback. */
-  // biome-ignore lint/suspicious/noExplicitAny: result shapes vary across AI SDK model types
   const emitPricing = (
     type: "image" | "video" | "speech" | "music",
     modelId: string,
-    result: any,
+    result: unknown,
   ) => {
     if (!onGeneration) return;
-    const vargMeta = result?.providerMetadata?.varg as
-      | { pricing?: Record<string, unknown>; jobId?: string }
-      | undefined;
-    if (vargMeta?.pricing) {
-      const p = vargMeta.pricing;
+    const metadata =
+      typeof result === "object" &&
+      result !== null &&
+      "providerMetadata" in result
+        ? (result.providerMetadata as
+            | Record<
+                string,
+                { pricing?: Record<string, unknown>; jobId?: string }
+              >
+            | undefined)
+        : undefined;
+    const pricingMetadata = metadata
+      ? Object.values(metadata).find((entry) => entry?.pricing)
+      : undefined;
+    if (pricingMetadata?.pricing) {
+      const p = pricingMetadata.pricing;
       onGeneration({
         type,
         model: modelId,
@@ -145,7 +156,7 @@ export async function renderRoot(
         actual: p.actual as number | undefined,
         billing: p.billing as "metered" | "byok" | "x402" | undefined,
         cached: p.cached as boolean | undefined,
-        jobId: vargMeta.jobId,
+        jobId: pricingMetadata.jobId,
       });
     }
   };
@@ -582,19 +593,36 @@ export async function renderRoot(
 
     // Merge ASS files: shift timestamps by each clip's start offset
     if (hoistedCaptionsResults.length === 1) {
-      const offset = clipStartOffsets[hoistedCaptions[0]!.clipIndex] ?? 0;
-      const assPath = hoistedCaptionsResults[0]!.assPath;
+      const firstHoistedCaption = atOrThrow(
+        hoistedCaptions,
+        0,
+        "Missing hoisted caption metadata for single caption result",
+      );
+      const firstCaptionResult = atOrThrow(
+        hoistedCaptionsResults,
+        0,
+        "Missing single hoisted caption result",
+      );
+      const offset = clipStartOffsets[firstHoistedCaption.clipIndex] ?? 0;
+      const assPath = firstCaptionResult.assPath;
       mergedAssPath =
         offset > 0 ? shiftAssTimestamps(assPath, offset) : assPath;
       if (mergedAssPath !== assPath) {
         ctx.tempFiles.push(mergedAssPath);
       }
     } else if (hoistedCaptionsResults.length > 1) {
-      const segments = hoistedCaptionsResults.map((result, i) => ({
-        assPath: result.assPath,
-        timeOffset: clipStartOffsets[hoistedCaptions[i]!.clipIndex] ?? 0,
-        styleSuffix: `_${i}`,
-      }));
+      const segments = hoistedCaptionsResults.map((result, i) => {
+        const hoistedCaption = atOrThrow(
+          hoistedCaptions,
+          i,
+          `Missing hoisted caption metadata for result ${i}`,
+        );
+        return {
+          assPath: result.assPath,
+          timeOffset: clipStartOffsets[hoistedCaption.clipIndex] ?? 0,
+          styleSuffix: `_${i}`,
+        };
+      });
       mergedAssPath = mergeAssFiles(segments, ctx.width, ctx.height);
       ctx.tempFiles.push(mergedAssPath);
     }
@@ -673,8 +701,17 @@ export async function renderRoot(
     // Collect emoji overlays from all caption results, shifting timing by clip offsets
     const allEmojiOverlays: EmojiOverlay[] = [];
     for (let i = 0; i < hoistedCaptionsResults.length; i++) {
-      const result = hoistedCaptionsResults[i]!;
-      const offset = clipStartOffsets[hoistedCaptions[i]!.clipIndex] ?? 0;
+      const result = atOrThrow(
+        hoistedCaptionsResults,
+        i,
+        `Missing hoisted caption result for emoji overlays at index ${i}`,
+      );
+      const hoistedCaption = atOrThrow(
+        hoistedCaptions,
+        i,
+        `Missing hoisted caption metadata for emoji overlays at index ${i}`,
+      );
+      const offset = clipStartOffsets[hoistedCaption.clipIndex] ?? 0;
       for (const overlay of result.emojiOverlays ?? []) {
         allEmojiOverlays.push(
           offset > 0
