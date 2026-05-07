@@ -1,51 +1,39 @@
+/** @jsxImportSource vargai */
 /**
- * Seedance 2 Cartoon — varg/react composable test.
+ * Seedance 2 Cartoon — direct provider composable test.
  *
- * Generates a cartoon image via varg gateway, then uses it as a reference
- * frame for an 8-second Seedance 2 video — all in one declarative tree.
- *
- * Run: VARG_API_KEY=varg_xxx bun run src/react/examples/seedance-cartoon.tsx
+ * Generates a cartoon image via fal, then uses it as a Seedance reference via PiAPI.
+ * Run: FAL_API_KEY=fal_xxx PIAPI_API_KEY=piapi_xxx bun run src/react/examples/seedance-cartoon.tsx
  */
-import { createVarg } from "../../ai-sdk/index";
-import { Clip, Image, Render, render, Video } from "..";
+import { fal } from "../../ai-sdk/providers/fal";
+import { piapi } from "../../ai-sdk/providers/piapi";
+import { Clip, Image, Render, Video } from "../index";
+import { render } from "../render";
 
-const varg = createVarg({
-  apiKey: process.env.VARG_API_KEY!,
-  baseUrl: process.env.VARG_BASE_URL || "https://api.varg.ai/v1",
+const image = Image({
+  prompt:
+    "a cheerful orange cat mascot, clean 3D cartoon style, white background",
+  model: fal.imageModel("flux-schnell"),
+  aspectRatio: "9:16",
 });
 
 const scene = (
-  <Render width={1280} height={720}>
-    <Clip duration={8}>
+  <Render width={1080} height={1920}>
+    <Clip duration={5}>
       <Video
         prompt={{
-          text: "The cartoon fox waves at the camera, snow gently falling, it turns its head and smiles, warm cozy Pixar animation",
-          images: [
-            Image({
-              model: varg.imageModel("nano-banana-pro"),
-              prompt:
-                "A cheerful cartoon fox wearing a tiny red scarf, standing in a snowy forest clearing, Pixar style, vibrant colors, soft lighting",
-              aspectRatio: "16:9",
-            }),
-          ],
+          text: "@image1 starts dancing happily, playful bouncy motion, colorful cartoon energy",
+          images: [image],
         }}
-        model={varg.videoModel("seedance-2-preview")}
-        duration={8}
-        aspectRatio="16:9"
+        model={piapi.videoModel("seedance-2-preview")}
       />
     </Clip>
   </Render>
 );
 
-export default scene;
-
 if (import.meta.main) {
-  console.log("Generating cartoon image + 8s Seedance 2 video...\n");
-  const { video } = await render(scene, {
-    output: "output/seedance-cartoon-8s.mp4",
-    cache: ".cache/ai",
-  });
-  console.log(
-    `\nDone! ${(video.byteLength / 1024 / 1024).toFixed(2)} MB -> output/seedance-cartoon-8s.mp4`,
-  );
+  const result = await render(scene, { output: "output/seedance-cartoon.mp4" });
+  console.log(`rendered ${result.video.byteLength} bytes`);
 }
+
+export default scene;

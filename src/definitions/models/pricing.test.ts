@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { valueOrThrow } from "../../core/utils/guards";
 import {
   allModels,
   calculateProviderCost,
@@ -9,14 +10,21 @@ import {
 describe("SDK pricing formulas", () => {
   test("all models have pricing defined", () => {
     for (const model of allModels) {
-      expect(model.pricing).toBeDefined();
-      expect(Object.keys(model.pricing!).length).toBeGreaterThan(0);
+      const pricing = valueOrThrow(
+        model.pricing,
+        `Missing pricing for model ${model.name}`,
+      );
+      expect(Object.keys(pricing).length).toBeGreaterThan(0);
     }
   });
 
   test("all pricing formulas return positive numbers", () => {
     for (const model of allModels) {
-      for (const [provider, pricing] of Object.entries(model.pricing!)) {
+      const modelPricing = valueOrThrow(
+        model.pricing,
+        `Missing pricing for model ${model.name}`,
+      );
+      for (const [_provider, pricing] of Object.entries(modelPricing)) {
         const cost = pricing.calculate({});
         expect(cost).toBeGreaterThan(0);
         expect(typeof cost).toBe("number");
@@ -27,7 +35,11 @@ describe("SDK pricing formulas", () => {
 
   test("all pricing formulas have valid bounds", () => {
     for (const model of allModels) {
-      for (const [provider, pricing] of Object.entries(model.pricing!)) {
+      const modelPricing = valueOrThrow(
+        model.pricing,
+        `Missing pricing for model ${model.name}`,
+      );
+      for (const [_provider, pricing] of Object.entries(modelPricing)) {
         expect(pricing.minUsd).toBeGreaterThan(0);
         expect(pricing.maxUsd).toBeGreaterThanOrEqual(pricing.minUsd);
         expect(pricing.description.length).toBeGreaterThan(0);
@@ -137,7 +149,9 @@ describe("SDK pricing formulas", () => {
   test("flux: 4 images costs 4x a single image", () => {
     const cost1 = calculateProviderCost("flux", "fal", { numImages: 1 });
     const cost4 = calculateProviderCost("flux", "fal", { numImages: 4 });
-    expect(cost4).toBe(cost1! * 4);
+    expect(cost4).toBe(
+      valueOrThrow(cost1, "Missing flux single-image cost") * 4,
+    );
   });
 
   test("phota/enhance: per-image pricing", () => {
@@ -155,7 +169,9 @@ describe("SDK pricing formulas", () => {
       characters: 1000,
     });
     expect(cost1000).toBeGreaterThan(0);
-    expect(cost1000).toBe(cost500! * 2);
+    expect(cost1000).toBe(
+      valueOrThrow(cost500, "Missing elevenlabs 500-character cost") * 2,
+    );
   });
 
   // --- Soul: batch_size pricing ---
@@ -202,8 +218,8 @@ describe("SDK pricing formulas", () => {
   test("getModelPricingBounds returns correct bounds for seedance", () => {
     const bounds = getModelPricingBounds("seedance-2-preview", "piapi");
     expect(bounds).not.toBeNull();
-    expect(bounds!.minUsd).toBe(1.25);
-    expect(bounds!.maxUsd).toBe(3.75);
+    expect(bounds?.minUsd).toBe(1.25);
+    expect(bounds?.maxUsd).toBe(3.75);
   });
 
   test("getModelPricingBounds returns null for unknown model", () => {

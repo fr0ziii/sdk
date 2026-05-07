@@ -6,11 +6,7 @@
  */
 
 import { z } from "zod";
-import type {
-  ModelDefinition,
-  ProviderPricing,
-  ZodSchema,
-} from "../../core/schema/types";
+import type { ModelDefinition, ZodSchema } from "../../core/schema/types";
 
 // Image size can be an enum string or an object with width/height
 const qwenImage2ImageSizeSchema = z.union([

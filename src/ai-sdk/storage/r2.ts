@@ -17,12 +17,12 @@ export function r2Storage(options?: R2StorageOptions): StorageProvider {
   const secretAccessKey =
     options?.secretAccessKey ?? process.env.CLOUDFLARE_ACCESS_SECRET;
   const bucket = options?.bucket ?? process.env.CLOUDFLARE_R2_BUCKET ?? "m";
-  const publicUrl = options?.publicUrl ?? "https://s3.varg.ai";
+  const publicUrl = options?.publicUrl ?? process.env.CLOUDFLARE_R2_PUBLIC_URL;
 
-  if (!endpoint || !accessKeyId || !secretAccessKey) {
+  if (!endpoint || !accessKeyId || !secretAccessKey || !publicUrl) {
     throw new Error(
-      "R2 storage requires endpoint, accessKeyId, and secretAccessKey. " +
-        "Set CLOUDFLARE_R2_API_URL, CLOUDFLARE_ACCESS_KEY_ID, CLOUDFLARE_ACCESS_SECRET env vars " +
+      "R2 storage requires endpoint, accessKeyId, secretAccessKey, and publicUrl. " +
+        "Set CLOUDFLARE_R2_API_URL, CLOUDFLARE_ACCESS_KEY_ID, CLOUDFLARE_ACCESS_SECRET, CLOUDFLARE_R2_PUBLIC_URL env vars " +
         "or pass options to r2Storage().",
     );
   }

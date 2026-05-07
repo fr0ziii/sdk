@@ -4,8 +4,11 @@ import { Clip, Image, Render, Video } from "vargai/react";
 // ============ REFERENCES ============
 
 const WOMAN_REF =
-  "https://s3.varg.ai/uploads/images/tlhzlrio6janrkhrwd29h-qp3ofcnoqv0-m4z6gr_280fee62.png";
-const VARG_PATTERN = "https://s3.varg.ai/uploads/images/varg-pattern.png";
+  process.env.WOMAN_REF_URL ??
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330";
+const DRESS_PATTERN_REF =
+  process.env.DRESS_PATTERN_REF_URL ??
+  "https://picsum.photos/seed/geometric-pattern/512";
 
 // ============ CONFIG ============
 
@@ -43,7 +46,7 @@ const background = Image({
 const patternDressChar = Image({
   prompt: {
     text: `Change the dress to black with the exact pattern from the pattern reference image. Apply the pattern naturally across the dress fabric. Keep everything else exactly the same — same woman, same face, same pose, same lighting, same background.`,
-    images: [baseCharacter, VARG_PATTERN, background],
+    images: [baseCharacter, DRESS_PATTERN_REF, background],
   },
   model: fal.imageModel("nano-banana-pro/edit"),
   aspectRatio: "9:16",
@@ -55,7 +58,7 @@ const patternDressChar = Image({
 const pose2_earring = Image({
   prompt: {
     text: `${characterBase}. Wearing ${OUTFIT}. Mirror selfie in ${location}. Standing close to mirror, one hand adjusting earring, other holding phone. Soft smile, chin slightly lifted. Full body in reflection. Elegant posture. Dress has pattern from reference.`,
-    images: [patternDressChar, WOMAN_REF, VARG_PATTERN, background],
+    images: [patternDressChar, WOMAN_REF, DRESS_PATTERN_REF, background],
   },
   model: fal.imageModel("nano-banana-pro/edit"),
   aspectRatio: "9:16",
@@ -65,7 +68,7 @@ const pose2_earring = Image({
 const pose3_side = Image({
   prompt: {
     text: `${characterBase}. Wearing ${OUTFIT}. Mirror selfie in ${location}. Standing at three-quarter angle to mirror, looking over shoulder at phone. Shows elegant silhouette and dress drape with pattern visible. Confident smile. Hand on hip.`,
-    images: [patternDressChar, WOMAN_REF, VARG_PATTERN, background],
+    images: [patternDressChar, WOMAN_REF, DRESS_PATTERN_REF, background],
   },
   model: fal.imageModel("nano-banana-pro/edit"),
   aspectRatio: "9:16",
@@ -75,7 +78,7 @@ const pose3_side = Image({
 const pose4_back = Image({
   prompt: {
     text: `Full back-view studio shot of the same girl from the reference, with perfect consistency of her body proportions, hairstyle, and posture. She is wearing the exact same outfit from the reference, including the identical fabric texture, the same material, the same pattern placement, the same silhouette, and the same fit across the shoulders, collar, sleeves, and back panel. Mirror selfie in ${location}. Looking over shoulder at phone with classy expression. One foot slightly forward.`,
-    images: [patternDressChar, WOMAN_REF, VARG_PATTERN, background],
+    images: [patternDressChar, WOMAN_REF, DRESS_PATTERN_REF, background],
   },
   model: fal.imageModel("nano-banana-pro/edit"),
   aspectRatio: "9:16",

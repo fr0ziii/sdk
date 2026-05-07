@@ -5,11 +5,7 @@
 
 import { z } from "zod";
 import { imageSizeSchema } from "../../core/schema/shared";
-import type {
-  ModelDefinition,
-  ProviderPricing,
-  ZodSchema,
-} from "../../core/schema/types";
+import type { ModelDefinition, ZodSchema } from "../../core/schema/types";
 
 // Input schema with Zod
 const fluxInputSchema = z.object({

@@ -1,3 +1,4 @@
+import { atOrThrow } from "../core/utils/guards";
 import type { SegmentDescriptor, WordTiming } from "./types";
 import { countWords } from "./word-segmenter";
 
@@ -48,14 +49,22 @@ export function mapWordsToSegments(
 ): SegmentDescriptor[] {
   if (!words.length || !children.length) return [];
 
-  const firstWord = words[0]!;
-  const lastWord = words[words.length - 1]!;
+  const lastWord = atOrThrow(
+    words,
+    words.length - 1,
+    "Missing last word timing",
+  );
 
   // Single child -> one segment spanning the entire audio
   if (children.length === 1) {
+    const onlyChild = atOrThrow(
+      children,
+      0,
+      "Missing only speech segment text",
+    );
     return [
       {
-        text: children[0]!,
+        text: onlyChild,
         start: 0,
         end: audioDuration ?? lastWord.end,
         duration: (audioDuration ?? lastWord.end) - 0,
@@ -72,7 +81,13 @@ export function mapWordsToSegments(
 
     if (segmentWordCount === 0) {
       const pos =
-        wordIndex < words.length ? words[wordIndex]!.start : lastWord.end;
+        wordIndex < words.length
+          ? atOrThrow(
+              words,
+              wordIndex,
+              `Missing word timing at index ${wordIndex}`,
+            ).start
+          : lastWord.end;
       raw.push({ text, start: pos, end: pos, duration: 0 });
       continue;
     }
@@ -87,12 +102,22 @@ export function mapWordsToSegments(
       continue;
     }
 
-    const segStart = words[wordIndex]!.start;
+    const startWord = atOrThrow(
+      words,
+      wordIndex,
+      `Missing segment start word timing at index ${wordIndex}`,
+    );
     const endWordIndex = Math.min(
       wordIndex + segmentWordCount - 1,
       words.length - 1,
     );
-    const segEnd = words[endWordIndex]!.end;
+    const endWord = atOrThrow(
+      words,
+      endWordIndex,
+      `Missing segment end word timing at index ${endWordIndex}`,
+    );
+    const segStart = startWord.start;
+    const segEnd = endWord.end;
 
     raw.push({
       text,
@@ -109,7 +134,7 @@ export function mapWordsToSegments(
   const expanded: SegmentDescriptor[] = [];
 
   for (let i = 0; i < raw.length; i++) {
-    const seg = raw[i]!;
+    const seg = atOrThrow(raw, i, `Missing raw speech segment at index ${i}`);
 
     // Skip zero-duration segments (empty text)
     if (seg.duration === 0) {
@@ -125,7 +150,11 @@ export function mapWordsToSegments(
       start = 0;
     } else {
       // Absorb gap from previous segment: pull start to midpoint of gap
-      const prev = raw[i - 1]!;
+      const prev = atOrThrow(
+        raw,
+        i - 1,
+        `Missing previous raw speech segment at index ${i - 1}`,
+      );
       if (prev.duration > 0 && prev.end < seg.start) {
         const midpoint = prev.end + (seg.start - prev.end) / 2;
         start = midpoint;
@@ -137,7 +166,11 @@ export function mapWordsToSegments(
       end = audioDuration ?? seg.end;
     } else {
       // Absorb gap to next segment: push end to midpoint of gap
-      const next = raw[i + 1]!;
+      const next = atOrThrow(
+        raw,
+        i + 1,
+        `Missing next raw speech segment at index ${i + 1}`,
+      );
       if (next.duration > 0 && seg.end < next.start) {
         const midpoint = seg.end + (next.start - seg.end) / 2;
         end = midpoint;

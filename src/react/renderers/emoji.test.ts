@@ -1,13 +1,14 @@
 import { describe, expect, test } from "bun:test";
+import { atOrThrow } from "../../core/utils/guards";
 import {
   buildEmojiFilterComplex,
   calculateEmojiSize,
   calculateEmojiX,
   calculateEmojiY,
+  type EmojiOverlay,
   extractEmoji,
   hasEmoji,
   stripEmoji,
-  type EmojiOverlay,
 } from "./emoji";
 
 // ---------------------------------------------------------------------------
@@ -70,18 +71,18 @@ describe("extractEmoji", () => {
   test("extracts single emoji", () => {
     const result = extractEmoji("Hello 💪 world");
     expect(result).toHaveLength(1);
-    expect(result[0]!.emoji).toBe("💪");
-    expect(result[0]!.codepoints).toBe("1f4aa");
-    expect(result[0]!.url).toBe("https://s3.varg.ai/emoji/1f4aa.png");
+    expect(result[0]?.emoji).toBe("💪");
+    expect(result[0]?.codepoints).toBe("1f4aa");
+    expect(result[0]?.url).toBe("");
     // In stripped text "Hello   world", the space at index 6 replaces 💪
-    expect(result[0]!.charIndex).toBe(6);
+    expect(result[0]?.charIndex).toBe(6);
   });
 
   test("extracts multiple emoji", () => {
     const result = extractEmoji("🔥 Go 💪");
     expect(result).toHaveLength(2);
-    expect(result[0]!.codepoints).toBe("1f525");
-    expect(result[1]!.codepoints).toBe("1f4aa");
+    expect(result[0]?.codepoints).toBe("1f525");
+    expect(result[1]?.codepoints).toBe("1f4aa");
   });
 
   test("handles emoji with variation selectors", () => {
@@ -102,7 +103,7 @@ describe("extractEmoji", () => {
     // So "A💪B" -> "A B", 💪's charIndex should be 1 (position of space)
     const result = extractEmoji("A💪B");
     expect(result).toHaveLength(1);
-    expect(result[0]!.charIndex).toBe(1);
+    expect(result[0]?.charIndex).toBe(1);
   });
 });
 
@@ -192,7 +193,7 @@ describe("buildEmojiFilterComplex", () => {
   test("builds filter graph for single emoji", () => {
     const overlays: EmojiOverlay[] = [
       {
-        url: "https://s3.varg.ai/emoji/1f525.png",
+        url: "https://cdn.example.com/emoji/1f525.png",
         fileName: "1f525.png",
         startTime: 1.0,
         endTime: 2.5,
@@ -227,7 +228,7 @@ describe("buildEmojiFilterComplex", () => {
   test("builds chained filter graph for multiple emoji", () => {
     const overlays: EmojiOverlay[] = [
       {
-        url: "https://s3.varg.ai/emoji/1f525.png",
+        url: "https://cdn.example.com/emoji/1f525.png",
         fileName: "1f525.png",
         startTime: 1.0,
         endTime: 2.0,
@@ -236,7 +237,7 @@ describe("buildEmojiFilterComplex", () => {
         size: 40,
       },
       {
-        url: "https://s3.varg.ai/emoji/1f4aa.png",
+        url: "https://cdn.example.com/emoji/1f4aa.png",
         fileName: "1f4aa.png",
         startTime: 2.0,
         endTime: 3.0,
@@ -272,7 +273,7 @@ describe("buildEmojiFilterComplex", () => {
   test("respects inputCount offset for emoji indices", () => {
     const overlays: EmojiOverlay[] = [
       {
-        url: "https://s3.varg.ai/emoji/1f525.png",
+        url: "https://cdn.example.com/emoji/1f525.png",
         fileName: "1f525.png",
         startTime: 0,
         endTime: 1,
@@ -304,11 +305,12 @@ describe("multi-space strip + extract", () => {
     // shrinkage = 2 - 2 = 0, so charIndex = 1
     const result = extractEmoji("A💪B", 2);
     expect(result).toHaveLength(1);
-    expect(result[0]!.charIndex).toBe(1);
+    const firstEmoji = atOrThrow(result, 0, "Expected first extracted emoji");
+    expect(firstEmoji.charIndex).toBe(1);
 
     const stripped = stripEmoji("A💪B", 2);
     expect(stripped).toBe("A  B");
-    expect(stripped[result[0]!.charIndex]).toBe(" ");
+    expect(stripped[firstEmoji.charIndex]).toBe(" ");
   });
 
   test("multi-space with multiple emoji", () => {
@@ -318,8 +320,8 @@ describe("multi-space strip + extract", () => {
 
     const instances = extractEmoji("🔥🔥", 3);
     expect(instances).toHaveLength(2);
-    expect(instances[0]!.charIndex).toBe(0);
-    expect(instances[1]!.charIndex).toBe(3); // after first 3 spaces
+    expect(instances[0]?.charIndex).toBe(0);
+    expect(instances[1]?.charIndex).toBe(3); // after first 3 spaces
   });
 
   test("multi-space charIndex consistency with stripped text", () => {
@@ -359,9 +361,9 @@ describe("strip + extract consistency", () => {
     const instances = extractEmoji(text);
     expect(instances).toHaveLength(3);
     // charIndex should be 0, 1, 2 in the stripped "   " text
-    expect(instances[0]!.charIndex).toBe(0);
-    expect(instances[1]!.charIndex).toBe(1);
-    expect(instances[2]!.charIndex).toBe(2);
+    expect(instances[0]?.charIndex).toBe(0);
+    expect(instances[1]?.charIndex).toBe(1);
+    expect(instances[2]?.charIndex).toBe(2);
   });
 
   test("handles mixed CJK + emoji text", () => {
@@ -371,8 +373,8 @@ describe("strip + extract consistency", () => {
 
     const instances = extractEmoji(text);
     expect(instances).toHaveLength(1);
-    expect(instances[0]!.codepoints).toBe("1f4aa");
+    expect(instances[0]?.codepoints).toBe("1f4aa");
     // In stripped text, the space is at index 4
-    expect(instances[0]!.charIndex).toBe(4);
+    expect(instances[0]?.charIndex).toBe(4);
   });
 });

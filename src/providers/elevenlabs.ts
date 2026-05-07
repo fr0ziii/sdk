@@ -190,7 +190,7 @@ export class ElevenLabsProvider extends BaseProvider {
 /**
  * Curated voice_id constants for common ElevenLabs voices.
  * For the full catalog of 600+ voices, use voice_ids directly or
- * call the gateway's GET /v1/voices endpoint to browse/search.
+ * call ElevenLabs' voices endpoint to browse/search.
  */
 export const VOICES = {
   // Current ElevenLabs premade voices (source: skills/varg-ai/references/models.md)

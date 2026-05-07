@@ -8,12 +8,7 @@
  */
 
 import { z } from "zod";
-import { aspectRatioSchema } from "../../core/schema/shared";
-import type {
-  ModelDefinition,
-  ProviderPricing,
-  ZodSchema,
-} from "../../core/schema/types";
+import type { ModelDefinition, ZodSchema } from "../../core/schema/types";
 
 // Seedance supports 5, 10, or 15 second durations
 const seedanceDurationSchema = z.union([

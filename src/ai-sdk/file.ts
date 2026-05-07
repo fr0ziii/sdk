@@ -1,6 +1,12 @@
 import type { ImageModelV3File } from "@ai-sdk/provider";
 import type { StorageProvider } from "./storage/types";
 
+export function uint8ArrayToArrayBuffer(data: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(data.byteLength);
+  new Uint8Array(buffer).set(data);
+  return buffer;
+}
+
 /** Type of generated content */
 export type GeneratedFileType =
   | "image"
@@ -196,7 +202,7 @@ export class File {
 
   async blob(): Promise<Blob> {
     const data = await this.arrayBuffer();
-    return new Blob([data], { type: this._mediaType });
+    return new Blob([uint8ArrayToArrayBuffer(data)], { type: this._mediaType });
   }
 
   /**

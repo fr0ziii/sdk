@@ -5,11 +5,7 @@
 
 import { z } from "zod";
 import { soulQualitySchema } from "../../core/schema/shared";
-import type {
-  ModelDefinition,
-  ProviderPricing,
-  ZodSchema,
-} from "../../core/schema/types";
+import type { ModelDefinition, ZodSchema } from "../../core/schema/types";
 
 // Soul-specific dimension schema
 const soulDimensionSchema = z.enum([

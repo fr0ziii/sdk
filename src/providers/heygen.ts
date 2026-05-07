@@ -6,6 +6,7 @@
  * HeyGen API docs: https://docs.heygen.com/reference
  */
 
+import { uint8ArrayToArrayBuffer } from "../ai-sdk/file";
 import type { JobStatusUpdate, ProviderConfig } from "../core/schema/types";
 import { BaseProvider } from "./base";
 
@@ -383,7 +384,8 @@ export class HeyGenProvider extends BaseProvider {
   ): Promise<string> {
     console.log("[heygen] uploading talking photo...");
 
-    const body = file instanceof Uint8Array ? file : new Uint8Array(file);
+    const body =
+      file instanceof Uint8Array ? uint8ArrayToArrayBuffer(file) : file;
 
     const res = await fetch(`${HEYGEN_UPLOAD_BASE}/v1/talking_photo`, {
       method: "POST",
@@ -424,7 +426,8 @@ export class HeyGenProvider extends BaseProvider {
   ): Promise<{ assetId: string; url: string }> {
     console.log(`[heygen] uploading asset (${contentType})...`);
 
-    const body = file instanceof Uint8Array ? file : new Uint8Array(file);
+    const body =
+      file instanceof Uint8Array ? uint8ArrayToArrayBuffer(file) : file;
 
     const res = await fetch(`${HEYGEN_UPLOAD_BASE}/v1/asset`, {
       method: "POST",

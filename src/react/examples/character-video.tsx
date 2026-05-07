@@ -3,7 +3,7 @@ import { fal } from "../../ai-sdk/providers/fal";
 import { Clip, Image, Music, Render, render, Video } from "..";
 
 const MADI_REF =
-  "https://s3.varg.ai/fellowers/madi/character_shots/madi_shot_03_closeup.png";
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=768";
 
 // TikTok timeline structure:
 // 0-2s: HOOK - frontal close-up, grab attention

@@ -13,6 +13,7 @@ import {
 import { fal } from "@fal-ai/client";
 import pMap from "p-map";
 import type { CacheStorage } from "../cache";
+import { uint8ArrayToArrayBuffer } from "../file";
 import { fileCache } from "../file-cache";
 import type { VideoModelV3, VideoModelV3CallOptions } from "../video-model";
 import { normalizeProviderInput } from "./model-rules";
@@ -361,7 +362,9 @@ async function fileToUrl(file: ImageModelV3File): Promise<string> {
   if (cached) return cached;
 
   const mediaType = file.mediaType ?? detectImageType(bytes) ?? "image/png";
-  const url = await fal.storage.upload(new Blob([bytes], { type: mediaType }));
+  const url = await fal.storage.upload(
+    new Blob([uint8ArrayToArrayBuffer(bytes)], { type: mediaType }),
+  );
   await uploadCache.set(hash, url, 7 * 24 * 60 * 60 * 1000);
   return url;
 }
@@ -680,10 +683,9 @@ class FalVideoModel implements VideoModelV3 {
         }
         // Additional images (3+) → image_urls for style/appearance reference
         if (imageFiles.length > 2) {
-          const additionalUrls: string[] = [];
-          for (let i = 2; i < imageFiles.length; i++) {
-            additionalUrls.push(await fileToUrl(imageFiles[i]!));
-          }
+          const additionalUrls = await Promise.all(
+            imageFiles.slice(2).map((imageFile) => fileToUrl(imageFile)),
+          );
           input.image_urls = additionalUrls;
         }
       }

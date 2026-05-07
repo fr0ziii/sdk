@@ -41,7 +41,8 @@ export class StorageProvider extends BaseProvider {
     });
 
     this.bucket = config?.bucket || process.env.CLOUDFLARE_R2_BUCKET || "m";
-    this.publicUrl = config?.publicUrl || "https://s3.varg.ai";
+    this.publicUrl =
+      config?.publicUrl || process.env.CLOUDFLARE_R2_PUBLIC_URL || "";
   }
 
   async submit(
@@ -156,6 +157,12 @@ export class StorageProvider extends BaseProvider {
 
     if (endpoint.includes("localhost")) {
       return `${endpoint}/${objectKey}`;
+    }
+
+    if (!this.publicUrl) {
+      throw new Error(
+        "Storage public URL is required. Set CLOUDFLARE_R2_PUBLIC_URL or pass publicUrl to StorageProvider.",
+      );
     }
 
     return `${this.publicUrl}/${objectKey}`;

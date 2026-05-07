@@ -23,6 +23,7 @@ import {
   type SharedV3Warning,
   type SpeechModelV3,
 } from "@ai-sdk/provider";
+import { uint8ArrayToArrayBuffer } from "../file";
 import type {
   VideoModelV3,
   VideoModelV3CallOptions,
@@ -75,7 +76,7 @@ async function uploadAssetToHeyGen(
       "X-Api-Key": apiKey,
       "Content-Type": contentType,
     },
-    body: data,
+    body: uint8ArrayToArrayBuffer(data),
   });
 
   if (!res.ok) {
@@ -106,7 +107,7 @@ async function uploadTalkingPhoto(
       "X-Api-Key": apiKey,
       "Content-Type": contentType,
     },
-    body: data,
+    body: uint8ArrayToArrayBuffer(data),
   });
 
   if (!res.ok) {
@@ -352,7 +353,10 @@ class HeyGenVideoModel implements VideoModelV3 {
     const statusData = await pollVideoStatus(this.apiKey, videoId, abortSignal);
 
     // ---- Download video ----
-    const videoRes = await fetch(statusData.video_url!, {
+    if (!statusData.video_url) {
+      throw new Error("HeyGen completed without a video URL");
+    }
+    const videoRes = await fetch(statusData.video_url, {
       ...(abortSignal != null ? { signal: abortSignal } : {}),
     });
     if (!videoRes.ok) {

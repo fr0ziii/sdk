@@ -4,6 +4,7 @@ import {
   type OpenAIProviderSettings,
 } from "@ai-sdk/openai";
 import type { SharedV3Warning } from "@ai-sdk/provider";
+import { uint8ArrayToArrayBuffer } from "../file";
 import type { VideoModelV3, VideoModelV3CallOptions } from "../video-model";
 
 // re-export base types
@@ -91,7 +92,9 @@ class OpenAIVideoModel implements VideoModelV3 {
             typeof imageFile.data === "string"
               ? Uint8Array.from(atob(imageFile.data), (c) => c.charCodeAt(0))
               : imageFile.data;
-          blob = new Blob([data], { type: imageFile.mediaType });
+          blob = new Blob([uint8ArrayToArrayBuffer(data)], {
+            type: imageFile.mediaType,
+          });
         } else {
           const response = await fetch(imageFile.url, {
             ...(abortSignal != null ? { signal: abortSignal } : {}),

@@ -4,6 +4,7 @@ import type {
   FFmpegBackend,
   FFmpegOutput,
 } from "../../ai-sdk/providers/editly/backends/types";
+import type { EmojiOverlay } from "./emoji";
 
 /**
  * Resolves an FFmpegOutput to a string path/URL via the backend.
@@ -19,7 +20,7 @@ async function resolveInputPathMaybeUpload(
 
 /** Font file descriptor for caption rendering. */
 export interface CaptionFontFile {
-  /** Public URL of the font file (e.g. https://s3.varg.ai/fonts/Montserrat-Bold.ttf) */
+  /** Public URL of the font file. */
   url: string;
   /** Filename (e.g. "Montserrat-Bold.ttf") */
   fileName: string;
@@ -33,6 +34,8 @@ export interface CaptionOverlayOptions {
   verbose?: boolean;
   /** Font files to include for subtitle rendering. When provided, fontsdir is set. */
   fontFiles?: CaptionFontFile[];
+  /** Optional precomputed emoji overlay descriptors. */
+  emojiOverlays?: EmojiOverlay[];
 }
 
 /** Local font cache directory. */
@@ -49,16 +52,18 @@ export async function ensureLocalFonts(
     mkdirSync(LOCAL_FONTS_DIR, { recursive: true });
   }
   await Promise.all(
-    fontFiles.map(async (font) => {
-      const localPath = `${LOCAL_FONTS_DIR}/${font.fileName}`;
-      if (existsSync(localPath)) return;
-      const res = await fetch(font.url);
-      if (!res.ok)
-        throw new Error(
-          `Failed to download font ${font.fileName}: ${res.status}`,
-        );
-      writeFileSync(localPath, new Uint8Array(await res.arrayBuffer()));
-    }),
+    fontFiles
+      .filter((font) => font.url.length > 0)
+      .map(async (font) => {
+        const localPath = `${LOCAL_FONTS_DIR}/${font.fileName}`;
+        if (existsSync(localPath)) return;
+        const res = await fetch(font.url);
+        if (!res.ok)
+          throw new Error(
+            `Failed to download font ${font.fileName}: ${res.status}`,
+          );
+        writeFileSync(localPath, new Uint8Array(await res.arrayBuffer()));
+      }),
   );
   return LOCAL_FONTS_DIR;
 }
@@ -108,8 +113,12 @@ export async function burnCaptions(
 
   // Build the video filter with optional fontsdir
   let videoFilter: string;
-  const useCompressedFolder = isCloud && fontFiles && fontFiles.length > 0;
-  if (fontFiles && fontFiles.length > 0) {
+  const downloadableFontFiles = fontFiles?.filter(
+    (font) => font.url.length > 0,
+  );
+  const _useCompressedFolder =
+    isCloud && downloadableFontFiles && downloadableFontFiles.length > 0;
+  if (downloadableFontFiles && downloadableFontFiles.length > 0) {
     if (isCloud) {
       // For Rendi compressed folder: use the bare filename of the ASS file
       // (all files are in the same working directory after ZIP extraction)
@@ -118,7 +127,7 @@ export async function burnCaptions(
       videoFilter = `subtitles=${assFileName}:fontsdir=.`;
     } else {
       // For local: download fonts and point fontsdir to the local cache
-      const fontsDir = await ensureLocalFonts(fontFiles);
+      const fontsDir = await ensureLocalFonts(downloadableFontFiles);
       const escapedFontsDir = fontsDir
         .replace(/\\/g, "\\\\")
         .replace(/:/g, "\\:");
@@ -130,8 +139,8 @@ export async function burnCaptions(
 
   // Build auxiliary files for cloud backends (fonts to bundle in compressed folder)
   const auxiliaryFiles =
-    isCloud && fontFiles && fontFiles.length > 0
-      ? fontFiles.map((f) => ({ url: f.url, fileName: f.fileName }))
+    isCloud && downloadableFontFiles && downloadableFontFiles.length > 0
+      ? downloadableFontFiles.map((f) => ({ url: f.url, fileName: f.fileName }))
       : undefined;
 
   const result = await backend.run({

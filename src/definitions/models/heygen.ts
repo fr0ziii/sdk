@@ -4,11 +4,7 @@
  */
 
 import { z } from "zod";
-import type {
-  ModelDefinition,
-  ProviderPricing,
-  ZodSchema,
-} from "../../core/schema/types";
+import type { ModelDefinition, ZodSchema } from "../../core/schema/types";
 
 const heygenInputSchema = z.object({
   script: z.string().describe("Script text for the avatar to speak"),

@@ -6,7 +6,7 @@
 // props-based scenes, image-to-video pipeline, captions per scene.
 import { elevenlabs } from "../../../ai-sdk/providers/elevenlabs";
 import { fal } from "../../../ai-sdk/providers/fal";
-import { Captions, Clip, Image, Music, Render, Speech } from "../..";
+import { Captions, Clip, Image, Render, Speech } from "../..";
 
 // ---------------------------------------------------------------------------
 // Reusable async Scene component
@@ -35,10 +35,9 @@ async function Scene({
   return (
     <Clip duration={audio.duration}>
       {Array.from({ length: numClips }, (_, i) => {
-        const photo = photoPrompts[i % photoPrompts.length]!.replace(
-          "${CHARACTER}",
-          character,
-        ).replace("${STYLE}", style);
+        const photo = photoPrompts[i % photoPrompts.length]
+          ?.replace("${CHARACTER}", character)
+          .replace("${STYLE}", style);
         return (
           <Clip duration={clipDuration} key={photo}>
             <Image

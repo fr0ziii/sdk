@@ -14,11 +14,13 @@ import { createRendiBackend } from ".";
 const shouldRunRendiTests =
   !!process.env.RENDI_INTEGRATION_TESTS && !!process.env.RENDI_API_KEY;
 
-const VIDEO_1 = "https://s3.varg.ai/test-media/sora-landscape.mp4";
-const VIDEO_2 = "https://s3.varg.ai/test-media/simpsons-scene.mp4";
+const VIDEO_1 =
+  "https://storage.rendi.dev/sample/big_buck_bunny_720p_5sec_intro.mp4";
+const VIDEO_2 =
+  "https://storage.rendi.dev/sample/big_buck_bunny_720p_5sec_intro.mp4";
 const VIDEO_TALKING =
-  "https://s3.varg.ai/test-media/workflow-talking-synced.mp4";
-const IMAGE_SQUARE = "https://s3.varg.ai/test-media/replicate-forest.png";
+  "https://storage.rendi.dev/sample/big_buck_bunny_720p_5sec_intro.mp4";
+const IMAGE_SQUARE = "https://picsum.photos/512";
 
 const mockStorage: StorageProvider = {
   async upload() {

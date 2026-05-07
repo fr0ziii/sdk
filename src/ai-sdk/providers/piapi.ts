@@ -12,9 +12,7 @@
 import type {
   EmbeddingModelV3,
   ImageModelV3,
-  ImageModelV3File,
   LanguageModelV3,
-  NoSuchModelError as NoSuchModelErrorType,
   ProviderV3,
   SharedV3Warning,
 } from "@ai-sdk/provider";

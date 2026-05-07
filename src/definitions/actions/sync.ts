@@ -10,6 +10,7 @@ import {
   videoDurationStringSchema,
 } from "../../core/schema/shared";
 import type { ActionDefinition, ZodSchema } from "../../core/schema/types";
+import { valueOrThrow } from "../../core/utils/guards";
 import { falProvider } from "../../providers/fal";
 import { ffmpegProvider } from "../../providers/ffmpeg";
 
@@ -102,6 +103,9 @@ export async function lipsync(options: LipsyncOptions): Promise<LipsyncResult> {
     );
   }
 
+  const requireImage = () =>
+    valueOrThrow(image, `[sync] ${model} requires an input image`);
+
   const result =
     model === "ltx-2-a2v"
       ? await falProvider.ltx2AudioToVideo({
@@ -111,7 +115,7 @@ export async function lipsync(options: LipsyncOptions): Promise<LipsyncResult> {
         })
       : model === "omnihuman-v1.5"
         ? await falProvider.omnihuman15({
-            imageUrl: image!,
+            imageUrl: requireImage(),
             audioUrl: audio,
             prompt,
             resolution: (resolution === "480p" ? "720p" : resolution) as
@@ -120,14 +124,14 @@ export async function lipsync(options: LipsyncOptions): Promise<LipsyncResult> {
           })
         : model === "veed-fabric-1.0"
           ? await falProvider.veedFabric10({
-              imageUrl: image!,
+              imageUrl: requireImage(),
               audioUrl: audio,
               resolution: (resolution === "1080p" ? "720p" : resolution) as
                 | "480p"
                 | "720p",
             })
           : await falProvider.wan25({
-              imageUrl: image!,
+              imageUrl: requireImage(),
               audioUrl: audio,
               prompt,
               duration,

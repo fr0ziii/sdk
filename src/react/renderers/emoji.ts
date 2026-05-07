@@ -6,11 +6,17 @@
  * spaces in the ASS subtitle, and overlay the emoji as PNG images using
  * ffmpeg's overlay filter.
  *
- * Emoji PNGs are Apple-style, extracted from Apple Color Emoji and hosted
- * on s3.varg.ai/emoji/{codepoint}.png (96x96 px with transparency).
+ * Optional color emoji PNG overlays are loaded from EMOJI_ASSET_BASE_URL
+ * using {codepoint}.png filenames (96x96 px with transparency).
  */
 
-const EMOJI_S3_BASE = "https://s3.varg.ai/emoji";
+function emojiAssetBaseUrl(): string | undefined {
+  return process.env.EMOJI_ASSET_BASE_URL?.replace(/\/$/, "");
+}
+
+export function emojiAssetsAvailable(): boolean {
+  return Boolean(emojiAssetBaseUrl());
+}
 
 // Regex to match emoji characters (SMP pictographic emoji + common BMP emoji)
 // This covers:
@@ -31,7 +37,7 @@ export interface EmojiInstance {
   emoji: string;
   /** Hex codepoint(s) for the S3 filename (e.g. "1f4aa" or "1f468-200d-1f469") */
   codepoints: string;
-  /** URL of the emoji PNG on S3 */
+  /** URL of the emoji PNG, empty when EMOJI_ASSET_BASE_URL is unset. */
   url: string;
   /** Character index in the original text where this emoji starts */
   charIndex: number;
@@ -79,7 +85,7 @@ export function stripEmoji(text: string, nSpaces = 1): string {
  * STRIPPED text (where each emoji is replaced by a single space).
  * This is the index needed for X-position calculation.
  */
-export function extractEmoji(text: string): EmojiInstance[] {
+export function extractEmoji(text: string, nSpaces = 1): EmojiInstance[] {
   const results: EmojiInstance[] = [];
 
   // Reset regex state
@@ -109,15 +115,16 @@ export function extractEmoji(text: string): EmojiInstance[] {
     // Position in the stripped text: original index minus accumulated shrinkage
     const strippedIndex = match.index - shrinkage;
 
+    const baseUrl = emojiAssetBaseUrl();
     results.push({
       emoji,
       codepoints,
-      url: `${EMOJI_S3_BASE}/${codepoints}.png`,
+      url: baseUrl ? `${baseUrl}/${codepoints}.png` : "",
       charIndex: strippedIndex,
     });
 
-    // This emoji occupies emoji.length chars in original but 1 space in stripped
-    shrinkage += emoji.length - 1;
+    // This emoji occupies emoji.length chars in original but nSpaces in stripped
+    shrinkage += emoji.length - nSpaces;
   }
 
   return results;
@@ -131,13 +138,12 @@ export function extractEmoji(text: string): EmojiInstance[] {
  * when PlayRes matches the video resolution (the common case in our pipeline).
  */
 export function calculateEmojiSize(
-  fontSize: number,
+  winAscent: number,
   playResY: number,
   videoHeight: number,
 ): number {
   const scale = videoHeight / playResY;
-  // Emoji should be slightly larger than text cap-height for visual balance
-  return Math.round(fontSize * 0.55 * scale);
+  return Math.round(winAscent * scale);
 }
 
 /**
@@ -183,23 +189,26 @@ export function calculateEmojiX(
 export function calculateEmojiY(
   alignment: number,
   marginV: number,
-  fontSize: number,
+  winDescent: number,
+  winAscent: number,
+  capHeight: number,
   playResY: number,
   videoHeight: number,
 ): number {
   const scale = videoHeight / playResY;
+  const verticalNudge = (winAscent - capHeight) / 2;
   let y: number;
 
   if (alignment >= 7) {
     // Top alignment (7, 8, 9)
-    y = marginV;
+    y = marginV + verticalNudge;
   } else if (alignment >= 4) {
     // Center alignment (4, 5, 6)
-    y = playResY / 2 - (fontSize * 0.55) / 2;
+    y = playResY / 2 - winAscent / 2 + verticalNudge;
   } else {
     // Bottom alignment (1, 2, 3)
-    // Empirical: text baseline sits at playResY - marginV - fontSize*0.75
-    y = playResY - marginV - fontSize * 0.75;
+    const baseline = playResY - marginV - winDescent;
+    y = baseline - winAscent + verticalNudge;
   }
 
   return Math.round(y * scale);

@@ -5,11 +5,7 @@
  */
 
 import { z } from "zod";
-import type {
-  ModelDefinition,
-  ProviderPricing,
-  ZodSchema,
-} from "../../core/schema/types";
+import type { ModelDefinition, ZodSchema } from "../../core/schema/types";
 
 // Output format options
 const reveOutputFormatSchema = z.enum(["png", "jpeg", "webp"]);

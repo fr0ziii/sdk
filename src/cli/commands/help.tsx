@@ -23,7 +23,7 @@ function HelpView() {
   const examples = [
     { command: "vargai hello", description: "create hello.tsx starter" },
     { command: "vargai render hello.tsx", description: "render jsx to video" },
-    { command: "vargai init", description: "full setup with api keys" },
+    { command: "vargai init", description: "local setup for direct providers" },
   ];
 
   return (
@@ -37,7 +37,7 @@ function HelpView() {
         <CommandRow name="hello" description="create hello.tsx starter video" />
         <CommandRow name="render" description="render jsx component to video" />
         <CommandRow name="preview" description="fast preview (placeholders)" />
-        <CommandRow name="init" description="full setup with api keys" />
+        <CommandRow name="init" description="setup direct provider project" />
         <CommandRow
           name="studio"
           description="visual editor at localhost:8282"

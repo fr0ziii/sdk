@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { File } from "../ai-sdk/file";
 import {
   Captions,
@@ -244,8 +244,8 @@ describe("ResolvedElement in composition tree", () => {
     );
 
     expect(clips.length).toBe(7);
-    expect(clips[0]!.props.duration).toBe(2);
-    expect(clips[6]!.props.duration).toBeCloseTo(0.4); // 12.4 - 6*2 = 0.4
+    expect(clips[0]?.props.duration).toBe(2);
+    expect(clips[6]?.props.duration).toBeCloseTo(0.4); // 12.4 - 6*2 = 0.4
   });
 });
 
@@ -257,7 +257,7 @@ describe("JSX runtime lazy wrapping", () => {
   const { jsx } = require("./runtime/jsx-runtime");
 
   test("sync component returns VargElement directly", () => {
-    function SyncScene(props: Record<string, unknown>) {
+    function SyncScene(_props: Record<string, unknown>) {
       return Clip({ duration: 5 });
     }
 
@@ -266,7 +266,7 @@ describe("JSX runtime lazy wrapping", () => {
   });
 
   test("async component is wrapped as __lazy element", () => {
-    async function AsyncScene(props: Record<string, unknown>) {
+    async function AsyncScene(_props: Record<string, unknown>) {
       return Clip({ duration: 5 });
     }
 
@@ -385,10 +385,10 @@ describe("resolveLazy", () => {
     // Should have 4 children: the original Clip(3), the two from the lazy, and Clip(2)
     const children = resolved.children as VargElement[];
     expect(children.length).toBe(4);
-    expect(children[0]!.props.duration).toBe(3);
-    expect(children[1]!.props.duration).toBe(5);
-    expect(children[2]!.props.duration).toBe(4);
-    expect(children[3]!.props.duration).toBe(2);
+    expect(children[0]?.props.duration).toBe(3);
+    expect(children[1]?.props.duration).toBe(5);
+    expect(children[2]?.props.duration).toBe(4);
+    expect(children[3]?.props.duration).toBe(2);
   });
 
   test("resolves async Scene-like component pattern", async () => {
@@ -608,14 +608,14 @@ describe("nested clips (container clip pattern)", () => {
     const children = resolved.children as VargElement[];
 
     expect(children.length).toBe(2);
-    expect(children[0]!.type).toBe("clip");
-    expect(children[0]!.props.duration).toBe(6); // 3 clips * 2s
-    expect(children[1]!.type).toBe("clip");
-    expect(children[1]!.props.duration).toBe(4); // 2 clips * 2s
+    expect(children[0]?.type).toBe("clip");
+    expect(children[0]?.props.duration).toBe(6); // 3 clips * 2s
+    expect(children[1]?.type).toBe("clip");
+    expect(children[1]?.props.duration).toBe(4); // 2 clips * 2s
 
     // First container has 3 inner clips + 1 captions = 4 children
-    expect(children[0]!.children.length).toBe(4);
+    expect(children[0]?.children.length).toBe(4);
     // Second container has 2 inner clips + 1 captions = 3 children
-    expect(children[1]!.children.length).toBe(3);
+    expect(children[1]?.children.length).toBe(3);
   });
 });

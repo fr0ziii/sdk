@@ -2,6 +2,7 @@ import { writeFileSync } from "node:fs";
 import { groq } from "@ai-sdk/groq";
 import { experimental_transcribe as transcribe } from "ai";
 import { z } from "zod";
+import { atOrThrow } from "../../core/utils/guards";
 import { smartJoin } from "../../speech/word-segmenter";
 import { ResolvedElement } from "../resolved-element";
 import type { CaptionsProps, VargElement } from "../types";
@@ -12,11 +13,12 @@ import {
   calculateEmojiY,
   type EmojiInstance,
   type EmojiOverlay,
+  emojiAssetsAvailable,
   extractEmoji,
   hasEmoji,
   stripEmoji,
 } from "./emoji";
-import { type FontResolution, getDefaultFontId, resolveFonts } from "./fonts";
+import { getDefaultFontId, resolveFonts } from "./fonts";
 import { addTask, completeTask, startTask } from "./progress";
 import { renderSpeech } from "./speech";
 import {
@@ -225,7 +227,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
       // Clamp end to next entry's start to prevent overlapping subtitles
       // (transcription engines often produce overlapping word timestamps)
       const nextStart =
-        i < entries.length - 1 ? entries[i + 1]!.start : undefined;
+        i < entries.length - 1 ? entries[i + 1]?.start : undefined;
       const clampedEnd =
         nextStart !== undefined ? Math.min(entry.end, nextStart) : entry.end;
 
@@ -310,13 +312,29 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   // Group entries into chunks of wordsPerLine
   for (let gi = 0; gi < entries.length; gi += wordsPerLine) {
     const group = entries.slice(gi, gi + wordsPerLine);
-    const groupStart = group[0]!.start;
+    if (group.length === 0) continue;
+
+    const firstGroupEntry = atOrThrow(
+      group,
+      0,
+      `Missing caption group start at index ${gi}`,
+    );
+    const lastGroupEntry = atOrThrow(
+      group,
+      group.length - 1,
+      `Missing caption group end at index ${gi + group.length - 1}`,
+    );
+    const groupStart = firstGroupEntry.start;
     // Cap group end at next group's start to prevent two groups showing simultaneously
     const nextGroupStart =
       gi + wordsPerLine < entries.length
-        ? entries[gi + wordsPerLine]!.start
+        ? atOrThrow(
+            entries,
+            gi + wordsPerLine,
+            `Missing next caption group start at index ${gi + wordsPerLine}`,
+          ).start
         : undefined;
-    const groupEnd = nextGroupStart ?? group[group.length - 1]!.end;
+    const groupEnd = nextGroupStart ?? lastGroupEntry.end;
 
     if (!activeColor) {
       // No highlight — show entire group as one event
@@ -354,10 +372,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
       const fullLineRaw = smartJoin(allGroupWords);
 
       let lineEmojiInstances: EmojiInstance[] | undefined;
-      let strippedFullLine: string | undefined;
+      let _strippedFullLine: string | undefined;
       if (collectEmoji && hasEmoji(fullLineRaw)) {
         lineEmojiInstances = extractEmoji(fullLineRaw, nSpaces);
-        strippedFullLine = stripEmoji(fullLineRaw, nSpaces);
+        _strippedFullLine = stripEmoji(fullLineRaw, nSpaces);
       }
 
       // Build per-word stripped words for highlight assembly
@@ -366,9 +384,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         : allGroupWords;
 
       for (let wi = 0; wi < group.length; wi++) {
-        const wordEntry = group[wi]!;
+        const wordEntry = atOrThrow(
+          group,
+          wi,
+          `Missing caption word at group index ${wi}`,
+        );
         const wordStart = wordEntry.start;
-        const wordEnd = wi < group.length - 1 ? group[wi + 1]!.start : groupEnd;
+        const wordEnd =
+          wi < group.length - 1
+            ? atOrThrow(
+                group,
+                wi + 1,
+                `Missing next caption word at group index ${wi + 1}`,
+              ).start
+            : groupEnd;
 
         const parts: string[] = [];
         for (let idx = 0; idx < group.length; idx++) {
@@ -480,14 +509,14 @@ export async function renderCaptions(
         srtContent = convertToSRT(nativeWords);
       } else {
         // Transcribe audio to get word-level timestamps for captions.
-        // Uses gateway transcription model if available (deployed render),
-        // falls back to direct Groq Whisper for local/CLI usage.
+        // Uses an explicit default transcription model when configured,
+        // otherwise falls back to direct Groq Whisper.
         const transcriptionModel = ctx.defaults?.transcription;
         const transcribeTaskId = ctx.progress
           ? addTask(
               ctx.progress,
               "transcribe",
-              transcriptionModel ? "gateway-whisper" : "groq-whisper",
+              transcriptionModel ? "custom-whisper" : "groq-whisper",
             )
           : null;
         if (transcribeTaskId && ctx.progress)
@@ -518,12 +547,17 @@ export async function renderCaptions(
 
           fallbackText = result.text;
 
-          // Extract words: from providerMetadata (gateway) or response body (direct groq)
-          const metaWords = (
-            result.providerMetadata?.varg as { words?: GroqWord[] } | undefined
+          // Extract words from provider metadata when available, or from direct Groq response body.
+          const metadataValues = Object.values(
+            result.providerMetadata ?? {},
+          ) as Array<{
+            words?: GroqWord[];
+          }>;
+          const metadataWords = metadataValues.find(
+            (entry) => entry.words && entry.words.length > 0,
           )?.words;
-          if (metaWords && metaWords.length > 0) {
-            words = metaWords;
+          if (metadataWords && metadataWords.length > 0) {
+            words = metadataWords;
           } else {
             const rawBody = (result.responses[0] as { body?: unknown })?.body;
             const parsed = groqResponseSchema.safeParse(rawBody);
@@ -591,9 +625,12 @@ export async function renderCaptions(
     ? colorToAss(props.activeColor)
     : undefined;
 
-  // Check if the SRT content has emoji — if so, we'll strip them from ASS
-  // text and build overlay data for color PNG rendering
-  const srtHasEmoji = hasEmoji(srtContent);
+  // Check if the SRT content has emoji and overlay assets/fonts are configured.
+  const hasFontAssets = fontResolution.fontFiles.some(
+    (font) => font.url.length > 0,
+  );
+  const srtHasEmoji =
+    hasEmoji(srtContent) && emojiAssetsAvailable() && hasFontAssets;
 
   // When emoji are present, compute how many spaces to reserve per emoji
   // using precise font metrics from the primary font

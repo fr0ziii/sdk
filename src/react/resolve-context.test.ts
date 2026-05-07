@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import type { CacheStorage } from "../ai-sdk/cache";
 import { File } from "../ai-sdk/file";
 import type { FFmpegBackend } from "../ai-sdk/providers/editly/backends";
@@ -136,7 +136,7 @@ describe("ResolveContext", () => {
     withResolveContext(ctx, () => {
       const current = getResolveContext();
       expect(current).toBeDefined();
-      expect(current!.backend.name).toBe("mock-local");
+      expect(current?.backend.name).toBe("mock-local");
     });
   });
 
@@ -153,14 +153,14 @@ describe("ResolveContext", () => {
     const cloudBackend = createMockCloudBackend();
 
     withResolveContext({ backend: localBackend }, () => {
-      expect(getResolveContext()!.backend.name).toBe("mock-local");
+      expect(getResolveContext()?.backend.name).toBe("mock-local");
 
       withResolveContext({ backend: cloudBackend }, () => {
-        expect(getResolveContext()!.backend.name).toBe("mock-cloud");
+        expect(getResolveContext()?.backend.name).toBe("mock-cloud");
       });
 
       // Outer context restored
-      expect(getResolveContext()!.backend.name).toBe("mock-local");
+      expect(getResolveContext()?.backend.name).toBe("mock-local");
     });
   });
 
@@ -188,8 +188,8 @@ describe("ResolveContext", () => {
 
     withResolveContext({ backend, cache }, () => {
       const ctx = getResolveContext();
-      expect(ctx!.cache).toBeDefined();
-      expect(ctx!.cache).toBe(cache);
+      expect(ctx?.cache).toBeDefined();
+      expect(ctx?.cache).toBe(cache);
     });
   });
 
@@ -198,7 +198,7 @@ describe("ResolveContext", () => {
 
     withResolveContext({ backend }, () => {
       const ctx = getResolveContext();
-      expect(ctx!.cache).toBeUndefined();
+      expect(ctx?.cache).toBeUndefined();
     });
   });
 });
@@ -296,8 +296,8 @@ describe("resolve pipeline with different backends", () => {
     await withResolveContext({ backend, cache }, async () => {
       const ctx = getResolveContext()!;
       // Simulate cache usage
-      await ctx.cache!.set("test-key", { data: "cached" });
-      const cached = await ctx.cache!.get("test-key");
+      await ctx.cache?.set("test-key", { data: "cached" });
+      const cached = await ctx.cache?.get("test-key");
       expect(cached).toEqual({ data: "cached" });
     });
 
@@ -329,7 +329,7 @@ describe("resolve pipeline with different backends", () => {
     expect(ctx).toBeUndefined();
 
     // Code should check for ctx and fall back to local behavior
-    const usesLocal = ctx?.backend ? false : true;
+    const usesLocal = !ctx?.backend;
     expect(usesLocal).toBe(true);
   });
 });
@@ -345,11 +345,11 @@ describe("concurrent resolve contexts", () => {
     const [result1, result2] = await Promise.all([
       withResolveContext({ backend: localBackend }, async () => {
         await new Promise((r) => setTimeout(r, 20));
-        return getResolveContext()!.backend.name;
+        return getResolveContext()?.backend.name;
       }),
       withResolveContext({ backend: cloudBackend }, async () => {
         await new Promise((r) => setTimeout(r, 10));
-        return getResolveContext()!.backend.name;
+        return getResolveContext()?.backend.name;
       }),
     ]);
 
@@ -364,15 +364,15 @@ describe("concurrent resolve contexts", () => {
 
     await Promise.all([
       withResolveContext({ backend, cache: cache1 }, async () => {
-        await getResolveContext()!.cache!.set("key", "from-cache-1");
+        await getResolveContext()?.cache?.set("key", "from-cache-1");
         await new Promise((r) => setTimeout(r, 10));
-        const val = await getResolveContext()!.cache!.get("key");
+        const val = await getResolveContext()?.cache?.get("key");
         expect(val).toBe("from-cache-1");
       }),
       withResolveContext({ backend, cache: cache2 }, async () => {
-        await getResolveContext()!.cache!.set("key", "from-cache-2");
+        await getResolveContext()?.cache?.set("key", "from-cache-2");
         await new Promise((r) => setTimeout(r, 5));
-        const val = await getResolveContext()!.cache!.get("key");
+        const val = await getResolveContext()?.cache?.get("key");
         expect(val).toBe("from-cache-2");
       }),
     ]);

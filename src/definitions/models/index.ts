@@ -2,11 +2,7 @@
  * Model definitions index
  */
 
-import type {
-  ModelDefinition,
-  PricingParams,
-  ProviderPricing,
-} from "../../core/schema/types";
+import type { PricingParams, ProviderPricing } from "../../core/schema/types";
 
 export { definition as elevenlabsTts } from "./elevenlabs";
 export { definition as flux } from "./flux";

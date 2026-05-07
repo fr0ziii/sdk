@@ -120,11 +120,11 @@ function isValidDefinition(obj: unknown): obj is Definition {
 }
 
 /**
- * Load user skills from ~/.varg/skills/
+ * Load user skills from ~/.config/vargai/skills/.
  */
 export async function loadUserSkills(verbose = false): Promise<void> {
   const homeDir = process.env.HOME || process.env.USERPROFILE || "";
-  const userSkillsDir = join(homeDir, ".varg", "skills");
+  const userSkillsDir = join(homeDir, ".config", "vargai", "skills");
 
   await loadFromDirectory(userSkillsDir, verbose);
 }
